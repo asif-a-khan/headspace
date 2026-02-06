@@ -1,37 +1,44 @@
 <template>
-  <v-card width="400" class="pa-4">
-    <v-card-title class="text-center text-h5 mb-2">Headspace</v-card-title>
-    <v-card-subtitle class="text-center mb-4">Super Admin Login</v-card-subtitle>
+  <v-card width="360" rounded="lg" elevation="1" :border="false">
+    <v-card-text class="pa-5 pb-3">
+      <p class="text-h6 font-weight-bold text-on-surface">Welcome Back!</p>
+    </v-card-text>
+
     <v-form @submit.prevent="submit">
-      <v-alert v-if="error" type="error" density="compact" class="mb-4">
-        {{ error }}
-      </v-alert>
-      <v-text-field
-        v-model="form.email"
-        label="Email"
-        type="email"
-        prepend-inner-icon="mdi-email"
-        required
-        autofocus
-      />
-      <v-text-field
-        v-model="form.password"
-        label="Password"
-        type="password"
-        prepend-inner-icon="mdi-lock"
-        required
-        class="mt-2"
-      />
-      <v-btn
-        type="submit"
-        color="primary"
-        block
-        size="large"
-        :loading="loading"
-        class="mt-4"
-      >
-        Sign In
-      </v-btn>
+      <v-card-text class="px-5 pt-0 pb-2">
+        <v-alert v-if="error" type="error" density="compact" class="mb-4" variant="tonal">
+          {{ error }}
+        </v-alert>
+        <v-text-field
+          v-model="form.email"
+          label="Email"
+          type="email"
+          prepend-inner-icon="mdi-email-outline"
+          required
+          autofocus
+          class="mb-2"
+        />
+        <v-text-field
+          v-model="form.password"
+          label="Password"
+          :type="showPassword ? 'text' : 'password'"
+          prepend-inner-icon="mdi-lock-outline"
+          :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+          @click:append-inner="showPassword = !showPassword"
+          required
+        />
+      </v-card-text>
+
+      <v-card-actions class="px-5 pb-5 pt-0 d-flex justify-end">
+        <v-btn
+          type="submit"
+          color="primary"
+          :loading="loading"
+          rounded="md"
+        >
+          Sign In
+        </v-btn>
+      </v-card-actions>
     </v-form>
   </v-card>
 </template>
@@ -43,6 +50,7 @@ import { post } from "@/api/client";
 const form = reactive({ email: "", password: "" });
 const error = ref("");
 const loading = ref(false);
+const showPassword = ref(false);
 
 async function submit() {
   error.value = "";

@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content="{{ csrf_token }}" />
     <title>{% block title %}Headspace{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/static/dist/{{ css_file }}" />
+    <style>
+        body, .v-application { font-family: 'Inter', sans-serif !important; }
+    </style>
 </head>
 <body>
     <script>
@@ -14,15 +20,14 @@
     </script>
     <div id="app">
         {# CSS skeleton shown until Vue mounts on load event #}
-        <div style="display:flex;height:100vh;background:#fafafa">
+        <div style="display:flex;flex-direction:column;height:100vh;background:#F3F4F6">
             {% block skeleton %}
-            <div style="width:256px;background:#fff;border-right:1px solid #e0e0e0"></div>
-            <div style="flex:1;display:flex;flex-direction:column">
-                <div style="height:48px;background:#fff;border-bottom:1px solid #e0e0e0"></div>
+            <div style="height:60px;background:#fff;border-bottom:1px solid #E5E7EB;flex-shrink:0"></div>
+            <div style="display:flex;flex:1">
+                <div style="width:220px;background:#fff;border-right:1px solid #E5E7EB;flex-shrink:0"></div>
                 <div style="flex:1;padding:24px">
-                    <div style="height:32px;width:200px;background:#e0e0e0;border-radius:4px;margin-bottom:16px"></div>
-                    <div style="height:300px;background:#e0e0e0;border-radius:4px;animation:shimmer 1.5s infinite linear">
-                    </div>
+                    <div style="height:32px;width:200px;background:#E5E7EB;border-radius:8px;margin-bottom:16px"></div>
+                    <div style="height:300px;background:#E5E7EB;border-radius:8px;animation:shimmer 1.5s infinite linear"></div>
                 </div>
             </div>
             {% endblock %}
