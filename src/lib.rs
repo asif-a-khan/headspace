@@ -12,6 +12,10 @@ pub mod views;
 use config::Config;
 use db::Database;
 
+use time::Duration;
+use tower_sessions::cookie::SameSite;
+use tower_sessions::{Expiry, SessionManagerLayer};
+use tower_sessions_sqlx_store::PostgresStore;
 use tracing_subscriber::EnvFilter;
 
 pub async fn run() -> anyhow::Result<()> {
@@ -30,12 +34,27 @@ pub async fn run() -> anyhow::Result<()> {
         "Configuration loaded"
     );
 
-    let _db = Database::connect(&config.database_writer_url, &config.database_reader_url).await?;
+    let db = Database::connect(&config.database_writer_url, &config.database_reader_url).await?;
     tracing::info!("Database connected");
 
-    let app = routes::app_router();
+    db::migrate::run_main_migrations(db.writer()).await?;
+    tracing::info!("Main schema migrations applied");
+
+    db::seed::seed_default_super_admin(db.writer()).await?;
+
+    // Session store (PostgreSQL-backed)
+    let session_store = PostgresStore::new(db.writer().clone());
+    session_store.migrate().await?;
+    tracing::info!("Session store ready");
+
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false) // TODO: set true in production with HTTPS
+        .with_same_site(SameSite::Lax)
+        .with_expiry(Expiry::OnInactivity(Duration::hours(8)));
 
     let addr = format!("{}:{}", config.app_host, config.app_port);
+
+    let app = routes::app_router(db, config, session_layer);
     tracing::info!("Starting server on {addr}");
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     axum::serve(listener, app).await?;

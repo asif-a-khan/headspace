@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="{{ csrf_token }}" />
+    <title>{% block title %}Headspace{% endblock %}</title>
+    <link rel="stylesheet" href="/static/dist/{{ css_file }}" />
+</head>
+<body>
+    <script>
+        window.__PAGE__ = "{{ page }}";
+        window.__INITIAL_DATA__ = {{ initial_data|safe }};
+    </script>
+    <div id="app">
+        {# CSS skeleton shown until Vue mounts on load event #}
+        <div style="display:flex;height:100vh;background:#fafafa">
+            {% block skeleton %}
+            <div style="width:256px;background:#fff;border-right:1px solid #e0e0e0"></div>
+            <div style="flex:1;display:flex;flex-direction:column">
+                <div style="height:48px;background:#fff;border-bottom:1px solid #e0e0e0"></div>
+                <div style="flex:1;padding:24px">
+                    <div style="height:32px;width:200px;background:#e0e0e0;border-radius:4px;margin-bottom:16px"></div>
+                    <div style="height:300px;background:#e0e0e0;border-radius:4px;animation:shimmer 1.5s infinite linear">
+                    </div>
+                </div>
+            </div>
+            {% endblock %}
+        </div>
+        <style>
+            @keyframes shimmer {
+                0% { opacity: 1; }
+                50% { opacity: 0.6; }
+                100% { opacity: 1; }
+            }
+        </style>
+    </div>
+    <script type="module" src="/static/dist/{{ js_file }}"></script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 //! Database connection management.
 
 pub mod migrate;
+pub mod seed;
 pub mod tenant;
 
 use sqlx::postgres::PgPoolOptions;
@@ -30,6 +31,14 @@ impl Database {
             .await?;
 
         Ok(Self { writer, reader })
+    }
+
+    /// Create a Database from an existing pool (uses the same pool for both reads and writes).
+    pub fn from_pool(pool: PgPool) -> Self {
+        Self {
+            writer: pool.clone(),
+            reader: pool,
+        }
     }
 
     pub fn writer(&self) -> &PgPool {
