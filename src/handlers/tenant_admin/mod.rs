@@ -1,3 +1,10 @@
+pub mod activities;
+pub mod attributes;
 pub mod auth;
+pub mod contacts;
 pub mod dashboard;
+pub mod leads;
+pub mod pipelines;
+pub mod products;
+pub mod quotes;
 pub mod settings;

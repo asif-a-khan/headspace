@@ -68,14 +68,18 @@
         <v-list-item
           prepend-icon="mdi-filter-variant"
           title="Leads"
-          disabled
+          href="/admin/leads"
+          :active="isActive('/admin/leads')"
+          :class="{ 'active-item': isActive('/admin/leads') }"
           rounded="lg"
         />
 
         <v-list-item
           prepend-icon="mdi-file-document-outline"
           title="Quotes"
-          disabled
+          href="/admin/quotes"
+          :active="isActive('/admin/quotes')"
+          :class="{ 'active-item': isActive('/admin/quotes') }"
           rounded="lg"
         />
 
@@ -89,7 +93,9 @@
         <v-list-item
           prepend-icon="mdi-calendar-clock"
           title="Activities"
-          disabled
+          href="/admin/activities"
+          :active="isActive('/admin/activities')"
+          :class="{ 'active-item': isActive('/admin/activities') }"
           rounded="lg"
         />
 
@@ -99,18 +105,31 @@
               v-bind="props"
               prepend-icon="mdi-account-multiple"
               title="Contacts"
-              disabled
               rounded="lg"
             />
           </template>
-          <v-list-item title="Persons" disabled rounded="lg" />
-          <v-list-item title="Organizations" disabled rounded="lg" />
+          <v-list-item
+            title="Persons"
+            href="/admin/contacts/persons"
+            :active="isActive('/admin/contacts/persons')"
+            :class="{ 'active-item': isActive('/admin/contacts/persons') }"
+            rounded="lg"
+          />
+          <v-list-item
+            title="Organizations"
+            href="/admin/contacts/organizations"
+            :active="isActive('/admin/contacts/organizations')"
+            :class="{ 'active-item': isActive('/admin/contacts/organizations') }"
+            rounded="lg"
+          />
         </v-list-group>
 
         <v-list-item
           prepend-icon="mdi-package-variant-closed"
           title="Products"
-          disabled
+          href="/admin/products"
+          :active="isActive('/admin/products')"
+          :class="{ 'active-item': isActive('/admin/products') }"
           rounded="lg"
         />
 

@@ -1,0 +1,10 @@
+CREATE TABLE lead_products (
+    id         BIGSERIAL PRIMARY KEY,
+    lead_id    BIGINT NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+    product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    quantity   INTEGER NOT NULL DEFAULT 1,
+    price      NUMERIC(12,4) NOT NULL DEFAULT 0,
+    amount     NUMERIC(12,4) NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

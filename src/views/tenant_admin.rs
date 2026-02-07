@@ -244,3 +244,509 @@ impl GroupEdit {
         Self { csrf_token, page, initial_data, js_file, css_file }
     }
 }
+
+// -- Attributes --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/settings/attributes/index.html")]
+pub struct AttributeIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl AttributeIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-attribute-list", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/settings/attributes/create.html")]
+pub struct AttributeCreate {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl AttributeCreate {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-attribute-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/settings/attributes/edit.html")]
+pub struct AttributeEdit {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl AttributeEdit {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-attribute-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Pipelines --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/settings/pipelines/index.html")]
+pub struct PipelineIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl PipelineIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-pipeline-list", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/settings/pipelines/create.html")]
+pub struct PipelineCreate {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl PipelineCreate {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-pipeline-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/settings/pipelines/edit.html")]
+pub struct PipelineEdit {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl PipelineEdit {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-pipeline-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Sources --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/settings/sources/index.html")]
+pub struct SourceIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl SourceIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-source-list", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Persons --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/contacts/persons/index.html")]
+pub struct PersonIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl PersonIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-person-list", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/contacts/persons/create.html")]
+pub struct PersonCreate {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl PersonCreate {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-person-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/contacts/persons/edit.html")]
+pub struct PersonEdit {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl PersonEdit {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-person-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Organizations --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/contacts/organizations/index.html")]
+pub struct OrganizationIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl OrganizationIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-organization-list", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/contacts/organizations/create.html")]
+pub struct OrganizationCreate {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl OrganizationCreate {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-organization-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/contacts/organizations/edit.html")]
+pub struct OrganizationEdit {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl OrganizationEdit {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-organization-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Leads --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/leads/index.html")]
+pub struct LeadIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl LeadIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-lead-list", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/leads/create.html")]
+pub struct LeadCreate {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl LeadCreate {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-lead-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/leads/edit.html")]
+pub struct LeadEdit {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl LeadEdit {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-lead-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/leads/kanban.html")]
+pub struct LeadKanbanView {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl LeadKanbanView {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-lead-kanban", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Activities --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/activities/index.html")]
+pub struct ActivityIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl ActivityIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-activity-list", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/activities/create.html")]
+pub struct ActivityCreate {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl ActivityCreate {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-activity-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/activities/edit.html")]
+pub struct ActivityEdit {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl ActivityEdit {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-activity-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Products --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/products/index.html")]
+pub struct ProductIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl ProductIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-product-list", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/products/create.html")]
+pub struct ProductCreate {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl ProductCreate {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-product-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/products/edit.html")]
+pub struct ProductEdit {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl ProductEdit {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-product-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Quotes --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/quotes/index.html")]
+pub struct QuoteIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl QuoteIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-quote-list", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/quotes/create.html")]
+pub struct QuoteCreate {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl QuoteCreate {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-quote-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/quotes/edit.html")]
+pub struct QuoteEdit {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl QuoteEdit {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-quote-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Types --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/settings/types/index.html")]
+pub struct TypeIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl TypeIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-type-list", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}

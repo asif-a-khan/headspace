@@ -1,4 +1,17 @@
+pub mod activities;
+pub mod attributes;
 pub mod auth;
+pub mod contacts;
+pub mod dashboard;
 pub mod groups;
+pub mod leads;
+pub mod organizations;
+pub mod persons;
+pub mod products;
+pub mod quotes;
+pub mod pipelines;
 pub mod roles;
+pub mod sources;
+pub mod tags;
+pub mod types;
 pub mod users;

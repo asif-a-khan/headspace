@@ -3,7 +3,7 @@
 //! Seeds default data on first run (empty database). Idempotent — does nothing
 //! if data already exists.
 
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
 
 use crate::auth::password::hash_password;
 use crate::models::company::Company;
@@ -123,6 +123,12 @@ pub async fn seed_default_tenant_admin(
         .execute(&mut conn)
         .await?;
 
+    // Seed system-defined attributes for each entity type
+    seed_system_attributes(&mut conn).await?;
+
+    // Seed default pipeline configuration
+    seed_pipeline_defaults(&mut conn).await?;
+
     // conn is dropped here — closed, not returned to pool.
 
     tracing::info!(
@@ -132,6 +138,151 @@ pub async fn seed_default_tenant_admin(
         "Default tenant admin seeded"
     );
 
+    Ok(())
+}
+
+/// Seed system-defined attributes for all entity types.
+///
+/// These define metadata about core entity columns (is_required, validation, etc.)
+/// and are not editable/deletable by tenant admins. Only runs if no attributes exist yet.
+async fn seed_system_attributes(conn: &mut PgConnection) -> anyhow::Result<()> {
+    let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM attributes")
+        .fetch_one(&mut *conn)
+        .await?;
+
+    if count.0 > 0 {
+        return Ok(());
+    }
+
+    // (code, name, type, entity_type, sort_order, validation, is_required, is_unique, quick_add)
+    let attrs: &[(&str, &str, &str, &str, i32, Option<&str>, bool, bool, bool)] = &[
+        // Leads
+        ("title", "Title", "text", "leads", 1, None, true, false, true),
+        ("description", "Description", "textarea", "leads", 2, None, false, false, true),
+        ("lead_value", "Lead Value", "decimal", "leads", 3, Some("decimal"), true, false, true),
+        ("expected_close_date", "Expected Close Date", "date", "leads", 4, None, false, false, true),
+        // Persons
+        ("name", "Name", "text", "persons", 1, None, true, false, true),
+        ("emails", "Emails", "email", "persons", 2, None, true, true, true),
+        ("contact_numbers", "Contact Numbers", "phone", "persons", 3, Some("numeric"), false, true, true),
+        ("job_title", "Job Title", "text", "persons", 4, None, false, false, true),
+        // Organizations
+        ("name", "Name", "text", "organizations", 1, None, true, true, true),
+        ("address", "Address", "address", "organizations", 2, None, false, false, true),
+        // Products
+        ("name", "Name", "text", "products", 1, None, true, false, true),
+        ("sku", "SKU", "text", "products", 2, None, true, true, true),
+        ("description", "Description", "textarea", "products", 3, None, false, false, true),
+        ("price", "Price", "decimal", "products", 4, Some("decimal"), true, false, true),
+        // Quotes
+        ("subject", "Subject", "text", "quotes", 1, None, true, false, true),
+        ("description", "Description", "textarea", "quotes", 2, None, false, false, true),
+    ];
+
+    for (code, name, attr_type, entity_type, sort_order, validation, is_required, is_unique, quick_add) in attrs {
+        sqlx::query(
+            "INSERT INTO attributes (code, name, type, entity_type, sort_order, validation, is_required, is_unique, quick_add, is_user_defined)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)",
+        )
+        .bind(code)
+        .bind(name)
+        .bind(attr_type)
+        .bind(entity_type)
+        .bind(sort_order)
+        .bind(validation)
+        .bind(is_required)
+        .bind(is_unique)
+        .bind(quick_add)
+        .execute(&mut *conn)
+        .await?;
+    }
+
+    tracing::info!("System-defined attributes seeded");
+    Ok(())
+}
+
+/// Seed default pipeline configuration: sources, types, stages, and default pipeline.
+async fn seed_pipeline_defaults(conn: &mut PgConnection) -> anyhow::Result<()> {
+    let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM lead_pipelines")
+        .fetch_one(&mut *conn)
+        .await?;
+
+    if count.0 > 0 {
+        return Ok(());
+    }
+
+    // Lead sources
+    for name in &["Email", "Web", "Web Form", "Phone", "Direct"] {
+        sqlx::query("INSERT INTO lead_sources (name) VALUES ($1)")
+            .bind(name)
+            .execute(&mut *conn)
+            .await?;
+    }
+
+    // Lead types
+    for name in &["New Business", "Existing Business"] {
+        sqlx::query("INSERT INTO lead_types (name) VALUES ($1)")
+            .bind(name)
+            .execute(&mut *conn)
+            .await?;
+    }
+
+    // Lead stages (system-defined)
+    // (code, name, is_user_defined)
+    let stages: &[(&str, &str, bool)] = &[
+        ("new", "New", false),
+        ("follow-up", "Follow Up", false),
+        ("prospect", "Prospect", false),
+        ("negotiation", "Negotiation", false),
+        ("won", "Won", false),
+        ("lost", "Lost", false),
+    ];
+
+    let mut stage_ids = Vec::new();
+    for (code, name, is_user_defined) in stages {
+        let row: (i64,) = sqlx::query_as(
+            "INSERT INTO lead_stages (code, name, is_user_defined) VALUES ($1, $2, $3) RETURNING id",
+        )
+        .bind(code)
+        .bind(name)
+        .bind(is_user_defined)
+        .fetch_one(&mut *conn)
+        .await?;
+        stage_ids.push(row.0);
+    }
+
+    // Default pipeline
+    let pipeline: (i64,) = sqlx::query_as(
+        "INSERT INTO lead_pipelines (name, is_default, rotten_days) VALUES ('Default', true, 30) RETURNING id",
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+
+    // Link stages to pipeline with probabilities
+    // (stage_index, probability, sort_order)
+    let pipeline_stages: &[(usize, i32, i32)] = &[
+        (0, 100, 1),  // New
+        (1, 100, 2),  // Follow Up
+        (2, 100, 3),  // Prospect
+        (3, 100, 4),  // Negotiation
+        (4, 100, 5),  // Won
+        (5, 0, 6),    // Lost
+    ];
+
+    for (stage_idx, probability, sort_order) in pipeline_stages {
+        sqlx::query(
+            "INSERT INTO lead_pipeline_stages (lead_pipeline_id, lead_stage_id, probability, sort_order)
+             VALUES ($1, $2, $3, $4)",
+        )
+        .bind(pipeline.0)
+        .bind(stage_ids[*stage_idx])
+        .bind(probability)
+        .bind(sort_order)
+        .execute(&mut *conn)
+        .await?;
+    }
+
+    tracing::info!("Pipeline defaults seeded (sources, types, stages, default pipeline)");
     Ok(())
 }
 

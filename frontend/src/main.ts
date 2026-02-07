@@ -28,6 +28,25 @@ import AdminRoleList from "./components/admin/settings/RoleList.vue";
 import AdminRoleForm from "./components/admin/settings/RoleForm.vue";
 import AdminGroupList from "./components/admin/settings/GroupList.vue";
 import AdminGroupForm from "./components/admin/settings/GroupForm.vue";
+import AdminAttributeList from "./components/admin/settings/AttributeList.vue";
+import AdminAttributeForm from "./components/admin/settings/AttributeForm.vue";
+import AdminPipelineList from "./components/admin/settings/PipelineList.vue";
+import AdminPipelineForm from "./components/admin/settings/PipelineForm.vue";
+import AdminSourceList from "./components/admin/settings/SourceList.vue";
+import AdminTypeList from "./components/admin/settings/TypeList.vue";
+import AdminQuoteList from "./components/admin/quotes/QuoteList.vue";
+import AdminQuoteBuilder from "./components/admin/quotes/QuoteBuilder.vue";
+import AdminActivityList from "./components/admin/activities/ActivityList.vue";
+import AdminActivityForm from "./components/admin/activities/ActivityForm.vue";
+import AdminProductList from "./components/admin/products/ProductList.vue";
+import AdminProductForm from "./components/admin/products/ProductForm.vue";
+import AdminLeadList from "./components/admin/leads/LeadList.vue";
+import AdminLeadForm from "./components/admin/leads/LeadForm.vue";
+import AdminLeadKanban from "./components/admin/leads/LeadKanban.vue";
+import AdminPersonList from "./components/admin/contacts/PersonList.vue";
+import AdminPersonForm from "./components/admin/contacts/PersonForm.vue";
+import AdminOrganizationList from "./components/admin/contacts/OrganizationList.vue";
+import AdminOrganizationForm from "./components/admin/contacts/OrganizationForm.vue";
 
 const pages: Record<string, { layout: Component; component: Component }> = {
   // Super admin pages
@@ -50,6 +69,25 @@ const pages: Record<string, { layout: Component; component: Component }> = {
   "admin-role-form": { layout: TenantAdminLayout, component: AdminRoleForm },
   "admin-group-list": { layout: TenantAdminLayout, component: AdminGroupList },
   "admin-group-form": { layout: TenantAdminLayout, component: AdminGroupForm },
+  "admin-attribute-list": { layout: TenantAdminLayout, component: AdminAttributeList },
+  "admin-attribute-form": { layout: TenantAdminLayout, component: AdminAttributeForm },
+  "admin-pipeline-list": { layout: TenantAdminLayout, component: AdminPipelineList },
+  "admin-pipeline-form": { layout: TenantAdminLayout, component: AdminPipelineForm },
+  "admin-source-list": { layout: TenantAdminLayout, component: AdminSourceList },
+  "admin-type-list": { layout: TenantAdminLayout, component: AdminTypeList },
+  "admin-quote-list": { layout: TenantAdminLayout, component: AdminQuoteList },
+  "admin-quote-form": { layout: TenantAdminLayout, component: AdminQuoteBuilder },
+  "admin-activity-list": { layout: TenantAdminLayout, component: AdminActivityList },
+  "admin-activity-form": { layout: TenantAdminLayout, component: AdminActivityForm },
+  "admin-product-list": { layout: TenantAdminLayout, component: AdminProductList },
+  "admin-product-form": { layout: TenantAdminLayout, component: AdminProductForm },
+  "admin-lead-list": { layout: TenantAdminLayout, component: AdminLeadList },
+  "admin-lead-form": { layout: TenantAdminLayout, component: AdminLeadForm },
+  "admin-lead-kanban": { layout: TenantAdminLayout, component: AdminLeadKanban },
+  "admin-person-list": { layout: TenantAdminLayout, component: AdminPersonList },
+  "admin-person-form": { layout: TenantAdminLayout, component: AdminPersonForm },
+  "admin-organization-list": { layout: TenantAdminLayout, component: AdminOrganizationList },
+  "admin-organization-form": { layout: TenantAdminLayout, component: AdminOrganizationForm },
 };
 
 // Mount after all assets loaded (no blank page flash)

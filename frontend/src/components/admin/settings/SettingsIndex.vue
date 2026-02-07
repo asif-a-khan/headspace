@@ -35,6 +35,50 @@
           </v-card-item>
         </v-card>
       </v-col>
+      <v-col cols="12" md="4">
+        <v-card hover href="/admin/settings/attributes">
+          <v-card-item>
+            <template #prepend>
+              <v-icon icon="mdi-format-list-bulleted-type" size="40" color="primary" />
+            </template>
+            <v-card-title>Attributes</v-card-title>
+            <v-card-subtitle>Manage custom fields for entities</v-card-subtitle>
+          </v-card-item>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-card hover href="/admin/settings/pipelines">
+          <v-card-item>
+            <template #prepend>
+              <v-icon icon="mdi-pipe" size="40" color="primary" />
+            </template>
+            <v-card-title>Pipelines</v-card-title>
+            <v-card-subtitle>Configure sales pipelines and stages</v-card-subtitle>
+          </v-card-item>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-card hover href="/admin/settings/sources">
+          <v-card-item>
+            <template #prepend>
+              <v-icon icon="mdi-source-branch" size="40" color="primary" />
+            </template>
+            <v-card-title>Sources</v-card-title>
+            <v-card-subtitle>Manage lead sources</v-card-subtitle>
+          </v-card-item>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-card hover href="/admin/settings/types">
+          <v-card-item>
+            <template #prepend>
+              <v-icon icon="mdi-tag-multiple" size="40" color="primary" />
+            </template>
+            <v-card-title>Types</v-card-title>
+            <v-card-subtitle>Manage lead types</v-card-subtitle>
+          </v-card-item>
+        </v-card>
+      </v-col>
     </v-row>
   </div>
 </template>
