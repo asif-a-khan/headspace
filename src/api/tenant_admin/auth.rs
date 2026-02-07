@@ -7,7 +7,7 @@ use tower_sessions::Session;
 
 use crate::auth::password::verify_password;
 use crate::db::Database;
-use crate::db::tenant::{reset_tenant, set_tenant};
+use crate::db::guard::TenantGuard;
 use crate::middleware::auth::set_tenant_admin_session;
 use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;
@@ -24,10 +24,10 @@ pub async fn login(
     Extension(company): Extension<Company>,
     Json(payload): Json<LoginRequest>,
 ) -> Response {
-    let mut conn = match db.reader().acquire().await {
-        Ok(conn) => conn,
+    let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
+        Ok(g) => g,
         Err(e) => {
-            tracing::error!("Failed to acquire connection: {e}");
+            tracing::error!("Failed to acquire tenant connection: {e}");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({ "error": "An internal error occurred." })),
@@ -36,28 +36,18 @@ pub async fn login(
         }
     };
 
-    if let Err(e) = set_tenant(&mut conn, &company.schema_name).await {
-        tracing::error!("Failed to set tenant: {e}");
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": "An internal error occurred." })),
+    let admin = guard.fetch_optional(
+        sqlx::query_as::<_, TenantUser>(
+            "SELECT u.*, r.permission_type, r.permissions AS role_permissions
+             FROM users u
+             JOIN roles r ON r.id = u.role_id
+             WHERE u.email = $1 AND u.status = true",
         )
-            .into_response();
-    }
-
-    let admin = sqlx::query_as::<_, TenantUser>(
-        "SELECT u.*, r.permission_type, r.permissions AS role_permissions
-         FROM users u
-         JOIN roles r ON r.id = u.role_id
-         WHERE u.email = $1 AND u.status = true",
+        .bind(&payload.email),
     )
-    .bind(&payload.email)
-    .fetch_optional(&mut *conn)
     .await;
 
-    if let Err(e) = reset_tenant(&mut conn).await {
-        tracing::error!("Failed to reset tenant: {e}");
-    }
+    let _ = guard.release().await;
 
     let admin = match admin {
         Ok(Some(a)) => a,

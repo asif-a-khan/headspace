@@ -13,7 +13,7 @@ use axum::{
 use tower_sessions::Session;
 
 use crate::db::Database;
-use crate::db::tenant::{reset_tenant, set_tenant};
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::super_admin::SuperAdmin;
 use crate::models::tenant_admin::TenantUser;
@@ -113,32 +113,26 @@ pub async fn require_tenant_admin(
         return redirect_to_admin_login();
     };
 
-    let mut conn = match db.reader().acquire().await {
-        Ok(conn) => conn,
+    let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
+        Ok(g) => g,
         Err(e) => {
-            tracing::error!("Failed to acquire connection: {e}");
+            tracing::error!("Failed to acquire tenant connection: {e}");
             return redirect_to_admin_login();
         }
     };
 
-    if let Err(e) = set_tenant(&mut conn, &company.schema_name).await {
-        tracing::error!("Failed to set tenant: {e}");
-        return redirect_to_admin_login();
-    }
-
-    let user = sqlx::query_as::<_, TenantUser>(
-        "SELECT u.*, r.permission_type, r.permissions AS role_permissions
-         FROM users u
-         JOIN roles r ON r.id = u.role_id
-         WHERE u.id = $1 AND u.status = true",
+    let user = guard.fetch_optional(
+        sqlx::query_as::<_, TenantUser>(
+            "SELECT u.*, r.permission_type, r.permissions AS role_permissions
+             FROM users u
+             JOIN roles r ON r.id = u.role_id
+             WHERE u.id = $1 AND u.status = true",
+        )
+        .bind(admin_id),
     )
-    .bind(admin_id)
-    .fetch_optional(&mut *conn)
     .await;
 
-    if let Err(e) = reset_tenant(&mut conn).await {
-        tracing::error!("Failed to reset tenant: {e}");
-    }
+    let _ = guard.release().await;
 
     match user {
         Ok(Some(user)) => {

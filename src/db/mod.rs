@@ -1,5 +1,6 @@
 //! Database connection management.
 
+pub mod guard;
 pub mod migrate;
 pub mod seed;
 pub mod tenant;

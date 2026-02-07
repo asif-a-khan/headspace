@@ -1,20 +1,13 @@
-//! Tenant context management.
+//! Low-level tenant context management.
 //!
-//! Provides `set_tenant()` and `reset_tenant()` to scope database connections
-//! to a specific tenant schema via `SET search_path`.
+//! **For handler and middleware code, use [`super::guard::TenantGuard`] instead.**
+//! TenantGuard wraps these primitives with Drop safety — if a `?` or early
+//! return skips cleanup, the connection is detached rather than returned to the
+//! pool with a tenant search_path still active.
 //!
-//! **Usage pattern** for tenant-scoped queries:
-//! ```rust,ignore
-//! let mut conn = pool.acquire().await?;
-//! set_tenant(&mut conn, schema_name).await?;
-//! // ... do queries using &mut *conn ...
-//! reset_tenant(&mut conn).await?;
-//! ```
-//!
-//! Every code path that calls `set_tenant()` MUST call `reset_tenant()` before
-//! the connection is returned to the pool — including error paths. If reset
-//! is impractical on error, use `conn.detach()` to remove the connection from
-//! the pool entirely.
+//! These functions remain available for migration and seed code where
+//! `TenantGuard`'s query delegation pattern doesn't apply (e.g. `Migrator::run()`
+//! requires the `Acquire` trait on the connection directly).
 
 use sqlx::PgConnection;
 
