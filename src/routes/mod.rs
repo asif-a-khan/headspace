@@ -13,8 +13,9 @@ use crate::api;
 use crate::config::Config;
 use crate::db::Database;
 use crate::handlers;
-use crate::middleware::auth::require_super_admin;
+use crate::middleware::auth::{require_super_admin, require_tenant_admin};
 use crate::middleware::csrf::require_csrf;
+use crate::middleware::tenant::require_tenant;
 
 /// Build the application router with all route groups.
 pub fn app_router(
@@ -29,6 +30,8 @@ pub fn app_router(
         .route("/super/api/login", post(api::super_admin::auth::login))
         // Super admin: protected routes (require auth)
         .merge(super_admin_routes())
+        // Tenant admin: all routes (require tenant resolution)
+        .merge(tenant_admin_routes())
         // Static files
         .nest_service("/static", ServeDir::new("static"))
         // Global layers (order: outermost applied last — CSRF runs after session is available)
@@ -65,4 +68,27 @@ fn super_admin_routes() -> Router {
         .route("/super/api/account", get(api::super_admin::account::show).put(api::super_admin::account::update))
         // Auth middleware for all routes in this group
         .layer(middleware::from_fn(require_super_admin))
+}
+
+/// Tenant admin routes — all wrapped in tenant resolution middleware.
+///
+/// Middleware order: require_tenant (outer, runs first) → require_tenant_admin (inner).
+/// This ensures Company is available in extensions before auth queries the tenant schema.
+fn tenant_admin_routes() -> Router {
+    Router::new()
+        // Public routes (tenant resolution only, no auth)
+        .route("/admin/login", get(handlers::tenant_admin::auth::login_page))
+        .route("/admin/api/login", post(api::tenant_admin::auth::login))
+        // Protected routes (tenant resolution + auth)
+        .merge(tenant_admin_protected_routes())
+        // Tenant resolution middleware for ALL /admin/* routes
+        .layer(middleware::from_fn(require_tenant))
+}
+
+/// Tenant admin routes that require authentication.
+fn tenant_admin_protected_routes() -> Router {
+    Router::new()
+        .route("/admin/logout", post(handlers::tenant_admin::auth::logout))
+        .route("/admin/dashboard", get(handlers::tenant_admin::dashboard::index))
+        .layer(middleware::from_fn(require_tenant_admin))
 }

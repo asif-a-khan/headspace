@@ -5,3 +5,4 @@
 //! routes pattern (see `docs/architecture/DESIGN_PATTERN.md`).
 
 pub mod super_admin;
+pub mod tenant_admin;

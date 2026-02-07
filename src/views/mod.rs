@@ -5,4 +5,5 @@
 //! for axum `IntoResponse` integration.
 
 pub mod super_admin;
+pub mod tenant_admin;
 pub mod vite;

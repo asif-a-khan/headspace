@@ -51,9 +51,21 @@ pub async fn store(
 
     match result {
         Ok(tenant) => {
-            // Create the tenant's PostgreSQL schema
+            // Create the tenant's PostgreSQL schema, run migrations + seed.
+            // setup_new_tenant produces a !Send future (sqlx Migrator HRTB issue),
+            // so we run it on a blocking thread via Handle::block_on which doesn't
+            // require Send. Acceptable for infrequent tenant creation.
             if let Err(e) = crate::db::migrate::create_tenant_schema(db.writer(), &schema_name).await {
                 tracing::error!("Failed to create tenant schema: {e}");
+            } else {
+                let pool = db.writer().clone();
+                let schema = schema_name.clone();
+                let domain = payload.domain.clone();
+                tokio::task::spawn_blocking(move || {
+                    tokio::runtime::Handle::current().block_on(async {
+                        crate::db::migrate::setup_new_tenant(&pool, &schema, &domain).await;
+                    });
+                });
             }
 
             (

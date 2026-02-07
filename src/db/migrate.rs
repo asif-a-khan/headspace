@@ -1,9 +1,14 @@
 //! Database migration runner.
 //!
-//! Handles both main schema migrations and per-tenant schema creation.
-//! Called on application startup. Idempotent.
+//! Handles main schema migrations, per-tenant schema creation, and
+//! per-tenant table migrations. Called on application startup. Idempotent.
 
+use std::path::Path;
+
+use sqlx::migrate::Migrator;
 use sqlx::PgPool;
+
+use crate::models::company::Company;
 
 /// Run all main schema migrations.
 ///
@@ -47,6 +52,70 @@ pub async fn create_tenant_schema(pool: &PgPool, schema_name: &str) -> anyhow::R
 
     tracing::info!(schema = schema_name, "Tenant schema created");
     Ok(())
+}
+
+/// Run tenant table migrations for a single tenant schema.
+///
+/// Detaches a connection from the pool (not returned after use) to avoid
+/// HRTB issues with `Migrator::run()`. This is safe because migrations
+/// are infrequent (startup + new tenant creation). Each tenant schema gets
+/// its own `_sqlx_migrations` tracking table.
+pub async fn run_tenant_migrations(pool: &PgPool, schema_name: &str) -> anyhow::Result<()> {
+    validate_schema_name(schema_name)?;
+
+    let migrator = Migrator::new(Path::new("migrations/tenant")).await?;
+
+    // Detach connection from pool so it's not returned with a modified search_path.
+    // The pool creates a fresh replacement automatically.
+    let pool_conn = pool.acquire().await?;
+    let mut conn = pool_conn.detach();
+
+    let sql = format!("SET search_path TO {schema_name}, public");
+    sqlx::query(&sql).execute(&mut conn).await?;
+
+    migrator.run(&mut conn).await?;
+    // conn is dropped here — closed, not returned to pool. That's fine for
+    // infrequent migration operations.
+
+    tracing::info!(schema = schema_name, "Tenant schema migrations applied");
+    Ok(())
+}
+
+/// Run tenant migrations for all active tenants.
+///
+/// Queries the companies table and runs `run_tenant_migrations` for each.
+pub async fn run_all_tenant_migrations(pool: &PgPool) -> anyhow::Result<()> {
+    let tenants = sqlx::query_as::<_, Company>(
+        "SELECT * FROM main.companies WHERE is_active = true",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    for tenant in &tenants {
+        if let Err(e) = run_tenant_migrations(pool, &tenant.schema_name).await {
+            tracing::error!(
+                schema = %tenant.schema_name,
+                error = %e,
+                "Failed to run tenant migrations"
+            );
+        }
+    }
+
+    Ok(())
+}
+
+/// Set up a newly created tenant: run migrations and seed default admin.
+///
+/// Called from tenant creation handler. Logs errors but does not fail
+/// (the tenant record is already created).
+pub async fn setup_new_tenant(pool: &PgPool, schema_name: &str, domain: &str) {
+    if let Err(e) = run_tenant_migrations(pool, schema_name).await {
+        tracing::error!("Failed to run tenant migrations: {e}");
+        return;
+    }
+    if let Err(e) = super::seed::seed_default_tenant_admin(pool, schema_name, domain).await {
+        tracing::error!("Failed to seed tenant admin: {e}");
+    }
 }
 
 /// Validate that a schema name contains only safe characters.

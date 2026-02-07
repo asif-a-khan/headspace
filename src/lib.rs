@@ -42,6 +42,11 @@ pub async fn run() -> anyhow::Result<()> {
 
     db::seed::seed_default_super_admin(db.writer()).await?;
 
+    db::migrate::run_all_tenant_migrations(db.writer()).await?;
+    tracing::info!("Tenant schema migrations applied");
+
+    db::seed::seed_all_tenant_admins(db.writer()).await?;
+
     // Session store (PostgreSQL-backed)
     let session_store = PostgresStore::new(db.writer().clone());
     session_store.migrate().await?;

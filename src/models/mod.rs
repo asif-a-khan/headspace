@@ -5,3 +5,4 @@
 pub mod company;
 pub mod super_admin;
 pub mod super_role;
+pub mod tenant_admin;
