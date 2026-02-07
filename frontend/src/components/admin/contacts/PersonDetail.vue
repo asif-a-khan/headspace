@@ -1,7 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
-
     <v-row>
       <!-- Left Column -->
       <v-col cols="12" md="8">
@@ -248,11 +246,6 @@ const tags: any[] = data.tags || [];
 const permissions: string[] = data.permissions || [];
 const canEdit = computed(() => permissions.includes("contacts.persons.edit") || data.permission_type === "all");
 const canDelete = computed(() => permissions.includes("contacts.persons.delete") || data.permission_type === "all");
-
-const breadcrumbs = computed(() => [
-  { title: "Persons", href: "/admin/contacts/persons" },
-  { title: person.name || "Person", disabled: true },
-]);
 
 const initials = computed(() => {
   const parts = (person.name || "").split(" ");

@@ -1,7 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
-
     <!-- Stage Progress Bar -->
     <v-card class="mb-4">
       <v-card-text class="d-flex align-center flex-wrap ga-1 py-3">
@@ -555,11 +553,6 @@ const leadQuotes = ref<any[]>(data.quotes || []);
 const permissions: string[] = data.permissions || [];
 const canEdit = computed(() => permissions.includes("leads.edit") || data.permission_type === "all");
 const canDelete = computed(() => permissions.includes("leads.delete") || data.permission_type === "all");
-
-const breadcrumbs = computed(() => [
-  { title: "Leads", href: "/admin/leads" },
-  { title: `Lead #${lead.id}`, disabled: true },
-]);
 
 const productsTotal = computed(() => {
   const total = leadProducts.value.reduce((sum: number, lp: any) => sum + Number(lp.amount || 0), 0);

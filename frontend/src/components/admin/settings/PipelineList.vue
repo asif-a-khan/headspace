@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <div class="d-flex align-center mb-4">
       <h1 class="text-h5">Pipelines</h1>
       <v-spacer />
@@ -65,11 +64,6 @@ const permissions: string[] = data.permissions || [];
 const canCreate = computed(() => permissions.includes("settings.pipelines.create") || data.permission_type === "all");
 const canEdit = computed(() => permissions.includes("settings.pipelines.edit") || data.permission_type === "all");
 const canDelete = computed(() => permissions.includes("settings.pipelines.delete") || data.permission_type === "all");
-
-const breadcrumbs = [
-  { title: "Settings", href: "/admin/settings" },
-  { title: "Pipelines", disabled: true },
-];
 
 const store = usePipelinesStore();
 store.hydrate(data);

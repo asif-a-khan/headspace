@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">{{ isEdit ? "Edit Pipeline" : "Create Pipeline" }}</h1>
     <v-card max-width="700">
       <v-card-text>
@@ -26,7 +25,7 @@
             <v-table density="compact">
               <thead>
                 <tr>
-                  <th>Stage</th>
+                  <th>Name</th>
                   <th width="120">Probability %</th>
                   <th width="60"></th>
                 </tr>
@@ -34,14 +33,12 @@
               <tbody>
                 <tr v-for="(ps, idx) in form.stages" :key="idx">
                   <td>
-                    <v-select
-                      v-model="ps.lead_stage_id"
-                      :items="availableStages"
-                      item-title="name"
-                      item-value="id"
+                    <v-text-field
+                      v-model="ps.name"
                       density="compact"
                       hide-details
                       variant="underlined"
+                      placeholder="Stage name"
                     />
                   </td>
                   <td>
@@ -88,23 +85,15 @@ const isEdit = !!data.pipeline;
 const error = ref("");
 const loading = ref(false);
 
-const breadcrumbs = [
-  { title: "Settings", href: "/admin/settings" },
-  { title: "Pipelines", href: "/admin/settings/pipelines" },
-  { title: data.pipeline ? "Edit" : "Create", disabled: true },
-];
-
-const availableStages = data.stages || [];
-
 interface FormStage {
-  lead_stage_id: number | null;
+  name: string;
   probability: number;
   sort_order: number;
 }
 
 const existingStages: FormStage[] = (data.pipeline_stages || []).map(
-  (ps: { lead_stage_id: number; probability: number; sort_order: number }) => ({
-    lead_stage_id: ps.lead_stage_id,
+  (ps: { stage_name: string; probability: number; sort_order: number }) => ({
+    name: ps.stage_name,
     probability: ps.probability,
     sort_order: ps.sort_order,
   }),
@@ -119,7 +108,7 @@ const form = reactive({
 
 function addStage() {
   form.stages.push({
-    lead_stage_id: null,
+    name: "",
     probability: 100,
     sort_order: form.stages.length,
   });
@@ -136,8 +125,8 @@ async function submit() {
     const payload = {
       ...form,
       stages: form.stages
-        .filter((s) => s.lead_stage_id != null)
-        .map((s, i) => ({ ...s, sort_order: i })),
+        .filter((s) => s.name.trim() !== "")
+        .map((s, i) => ({ name: s.name.trim(), probability: s.probability, sort_order: i })),
     };
     if (isEdit) {
       await store.update(data.pipeline.id, payload);

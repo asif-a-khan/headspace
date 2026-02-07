@@ -1,95 +1,70 @@
 <template>
   <div>
-    <h1 class="text-h5 mb-4">Settings</h1>
-    <v-row>
-      <v-col cols="12" md="4">
-        <v-card hover href="/admin/settings/users">
-          <v-card-item>
-            <template #prepend>
-              <v-icon icon="mdi-account-group" size="40" color="primary" />
-            </template>
-            <v-card-title>Users</v-card-title>
-            <v-card-subtitle>Manage team members</v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="4">
-        <v-card hover href="/admin/settings/roles">
-          <v-card-item>
-            <template #prepend>
-              <v-icon icon="mdi-shield-lock" size="40" color="primary" />
-            </template>
-            <v-card-title>Roles</v-card-title>
-            <v-card-subtitle>Manage roles and permissions</v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="4">
-        <v-card hover href="/admin/settings/groups">
-          <v-card-item>
-            <template #prepend>
-              <v-icon icon="mdi-account-multiple-check" size="40" color="primary" />
-            </template>
-            <v-card-title>Groups</v-card-title>
-            <v-card-subtitle>Manage user groups for data scoping</v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="4">
-        <v-card hover href="/admin/settings/attributes">
-          <v-card-item>
-            <template #prepend>
-              <v-icon icon="mdi-format-list-bulleted-type" size="40" color="primary" />
-            </template>
-            <v-card-title>Attributes</v-card-title>
-            <v-card-subtitle>Manage custom fields for entities</v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="4">
-        <v-card hover href="/admin/settings/pipelines">
-          <v-card-item>
-            <template #prepend>
-              <v-icon icon="mdi-pipe" size="40" color="primary" />
-            </template>
-            <v-card-title>Pipelines</v-card-title>
-            <v-card-subtitle>Configure sales pipelines and stages</v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="4">
-        <v-card hover href="/admin/settings/sources">
-          <v-card-item>
-            <template #prepend>
-              <v-icon icon="mdi-source-branch" size="40" color="primary" />
-            </template>
-            <v-card-title>Sources</v-card-title>
-            <v-card-subtitle>Manage lead sources</v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="4">
-        <v-card hover href="/admin/settings/types">
-          <v-card-item>
-            <template #prepend>
-              <v-icon icon="mdi-tag-multiple" size="40" color="primary" />
-            </template>
-            <v-card-title>Types</v-card-title>
-            <v-card-subtitle>Manage lead types</v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="4">
-        <v-card hover href="/admin/settings/configuration">
-          <v-card-item>
-            <template #prepend>
-              <v-icon icon="mdi-cog" size="40" color="primary" />
-            </template>
-            <v-card-title>Configuration</v-card-title>
-            <v-card-subtitle>Currency, date format, appearance</v-card-subtitle>
-          </v-card-item>
-        </v-card>
-      </v-col>
-    </v-row>
+    <h1 class="text-h5 mb-6">Settings</h1>
+
+    <div v-for="(category, idx) in categories" :key="category.title" :class="{ 'mt-8': idx > 0 }">
+      <div class="mb-3">
+        <h2 class="text-h6">{{ category.title }}</h2>
+        <p class="text-body-2 text-medium-emphasis">{{ category.description }}</p>
+      </div>
+      <v-row>
+        <v-col v-for="card in category.cards" :key="card.href" cols="12" md="4">
+          <v-card hover :href="card.href">
+            <v-card-item>
+              <template #prepend>
+                <v-icon :icon="card.icon" size="40" color="primary" />
+              </template>
+              <v-card-title>{{ card.title }}</v-card-title>
+              <v-card-subtitle>{{ card.subtitle }}</v-card-subtitle>
+            </v-card-item>
+          </v-card>
+        </v-col>
+      </v-row>
+    </div>
   </div>
 </template>
+
+<script setup lang="ts">
+interface SettingsCard {
+  title: string;
+  subtitle: string;
+  icon: string;
+  href: string;
+}
+
+interface SettingsCategory {
+  title: string;
+  description: string;
+  cards: SettingsCard[];
+}
+
+const categories: SettingsCategory[] = [
+  {
+    title: "User Management",
+    description: "Manage users and their permissions",
+    cards: [
+      { title: "Groups", subtitle: "Manage user groups for data scoping", icon: "mdi-account-multiple-check", href: "/admin/settings/groups" },
+      { title: "Roles", subtitle: "Manage roles and permissions", icon: "mdi-shield-lock", href: "/admin/settings/roles" },
+      { title: "Users", subtitle: "Manage team members", icon: "mdi-account-group", href: "/admin/settings/users" },
+    ],
+  },
+  {
+    title: "Lead Management",
+    description: "Manage lead-related settings",
+    cards: [
+      { title: "Pipelines", subtitle: "Configure sales pipelines and stages", icon: "mdi-pipe", href: "/admin/settings/pipelines" },
+      { title: "Sources", subtitle: "Manage lead sources", icon: "mdi-source-branch", href: "/admin/settings/sources" },
+      { title: "Types", subtitle: "Manage lead types", icon: "mdi-tag-multiple", href: "/admin/settings/types" },
+    ],
+  },
+  {
+    title: "Other Settings",
+    description: "Manage extra settings",
+    cards: [
+      { title: "Tags", subtitle: "Manage tags for categorizing records", icon: "mdi-tag-multiple-outline", href: "/admin/settings/tags" },
+      { title: "Attributes", subtitle: "Manage custom fields for entities", icon: "mdi-format-list-bulleted-type", href: "/admin/settings/attributes" },
+      { title: "Configuration", subtitle: "Currency, date format, appearance", icon: "mdi-cog", href: "/admin/settings/configuration" },
+    ],
+  },
+];
+</script>

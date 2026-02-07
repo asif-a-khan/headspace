@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">{{ isEdit ? "Edit Product" : "Create Product" }}</h1>
 
     <v-card max-width="700">
@@ -67,11 +66,6 @@ import { useProductsStore } from "@/stores/admin/products";
 const data = window.__INITIAL_DATA__ || {};
 const store = useProductsStore();
 const isEdit = computed(() => !!data.product);
-
-const breadcrumbs = computed(() => [
-  { title: "Products", href: "/admin/products" },
-  { title: isEdit.value ? "Edit" : "Create", disabled: true },
-]);
 
 const product = data.product;
 const form = reactive({

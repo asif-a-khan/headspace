@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">{{ isEdit ? "Edit Person" : "Create Person" }}</h1>
 
     <v-card max-width="700">
@@ -115,12 +114,6 @@ import { usePersonsStore } from "@/stores/admin/persons";
 const data = window.__INITIAL_DATA__ || {};
 const store = usePersonsStore();
 const isEdit = computed(() => !!data.person);
-
-const breadcrumbs = computed(() => [
-  { title: "Contacts", disabled: true },
-  { title: "Persons", href: "/admin/contacts/persons" },
-  { title: isEdit.value ? "Edit" : "Create", disabled: true },
-]);
 
 interface EmailEntry { value: string; label: string }
 interface PhoneEntry { value: string; label: string }

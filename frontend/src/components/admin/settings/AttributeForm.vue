@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">{{ isEdit ? "Edit Attribute" : "Create Attribute" }}</h1>
     <v-card max-width="700">
       <v-card-text>
@@ -103,12 +102,6 @@ const store = useAttributesStore();
 const isEdit = !!data.attribute;
 const error = ref("");
 const loading = ref(false);
-
-const breadcrumbs = [
-  { title: "Settings", href: "/admin/settings" },
-  { title: "Attributes", href: "/admin/settings/attributes" },
-  { title: data.attribute ? "Edit" : "Create", disabled: true },
-];
 
 const entityTypes = [
   { label: "Leads", value: "leads" },

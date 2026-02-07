@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <div class="d-flex align-center mb-4">
       <h1 class="text-h5">Lead Types</h1>
       <v-spacer />
@@ -76,11 +75,6 @@ const permissions: string[] = data.permissions || [];
 const canCreate = computed(() => permissions.includes("settings.types.create") || data.permission_type === "all");
 const canEdit = computed(() => permissions.includes("settings.types.edit") || data.permission_type === "all");
 const canDelete = computed(() => permissions.includes("settings.types.delete") || data.permission_type === "all");
-
-const breadcrumbs = [
-  { title: "Settings", href: "/admin/settings" },
-  { title: "Types", disabled: true },
-];
 
 const store = useTypesStore();
 store.hydrate(data);

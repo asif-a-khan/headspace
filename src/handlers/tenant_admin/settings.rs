@@ -10,9 +10,10 @@ use crate::models::company::Company;
 use crate::models::group::Group;
 use crate::models::tenant_admin::{TenantRole, TenantUser};
 use crate::api::tenant_admin::config::load_tenant_config;
+use crate::models::tag::Tag;
 use crate::views::tenant_admin::{
     ConfigurationIndex, GroupCreate, GroupEdit, GroupIndex, RoleCreate, RoleEdit, RoleIndex,
-    SettingsIndex, UserCreate, UserEdit, UserIndex,
+    SettingsIndex, TagIndex, UserCreate, UserEdit, UserIndex,
 };
 
 pub async fn index(
@@ -375,4 +376,36 @@ pub async fn configuration_index(
         "permissions": user.role_permissions,
     });
     ConfigurationIndex::new(csrf_token, initial_data.to_string()).into_response()
+}
+
+// -- Tags --
+
+pub async fn tags_index(
+    session: Session,
+    Extension(db): Extension<Database>,
+    Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
+) -> Response {
+    let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
+
+    let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
+        Ok(g) => g,
+        Err(_) => return TagIndex::new(csrf_token, "{}".to_string()).into_response(),
+    };
+
+    let tags = guard
+        .fetch_all(sqlx::query_as::<_, Tag>("SELECT * FROM tags ORDER BY name"))
+        .await
+        .unwrap_or_default();
+
+    let _ = guard.release().await;
+
+    let initial_data = serde_json::json!({
+        "tags": tags,
+        "admin_name": user.full_name(),
+        "company_name": company.name,
+        "permission_type": user.permission_type,
+        "permissions": user.role_permissions,
+    });
+    TagIndex::new(csrf_token, initial_data.to_string()).into_response()
 }

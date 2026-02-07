@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <div class="d-flex align-center mb-4">
       <h1 class="text-h5">Users</h1>
       <v-spacer />
@@ -72,11 +71,6 @@ const permissions: string[] = data.permissions || [];
 const canCreate = computed(() => permissions.includes("settings.users.create") || data.permission_type === "all");
 const canEdit = computed(() => permissions.includes("settings.users.edit") || data.permission_type === "all");
 const canDelete = computed(() => permissions.includes("settings.users.delete") || data.permission_type === "all");
-
-const breadcrumbs = [
-  { title: "Settings", href: "/admin/settings" },
-  { title: "Users", disabled: true },
-];
 
 const store = useUsersStore();
 store.hydrate(data);

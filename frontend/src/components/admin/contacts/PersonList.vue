@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <div class="d-flex align-center mb-4">
       <h1 class="text-h5">Persons</h1>
       <v-spacer />
@@ -156,11 +155,6 @@ const permissions: string[] = data.permissions || [];
 const canCreate = computed(() => permissions.includes("contacts.persons.create") || data.permission_type === "all");
 const canEdit = computed(() => permissions.includes("contacts.persons.edit") || data.permission_type === "all");
 const canDelete = computed(() => permissions.includes("contacts.persons.delete") || data.permission_type === "all");
-
-const breadcrumbs = [
-  { title: "Contacts", disabled: true },
-  { title: "Persons", disabled: true },
-];
 
 const store = usePersonsStore();
 store.hydrate(data);

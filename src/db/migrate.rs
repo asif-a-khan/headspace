@@ -70,6 +70,10 @@ pub async fn run_tenant_migrations(pool: &PgPool, schema_name: &str) -> anyhow::
     let pool_conn = pool.acquire().await?;
     let mut conn = pool_conn.detach();
 
+    // Ensure the schema exists before setting search_path
+    let create_sql = format!("CREATE SCHEMA IF NOT EXISTS {schema_name}");
+    sqlx::query(&create_sql).execute(&mut conn).await?;
+
     let sql = format!("SET search_path TO {schema_name}, public");
     sqlx::query(&sql).execute(&mut conn).await?;
 

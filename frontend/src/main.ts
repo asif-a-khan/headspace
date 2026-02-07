@@ -36,6 +36,7 @@ const pages: Record<string, { layout: Component; component: LazyComponent }> = {
   "admin-pipeline-form": { layout: TenantAdminLayout, component: () => import("./components/admin/settings/PipelineForm.vue") },
   "admin-source-list": { layout: TenantAdminLayout, component: () => import("./components/admin/settings/SourceList.vue") },
   "admin-type-list": { layout: TenantAdminLayout, component: () => import("./components/admin/settings/TypeList.vue") },
+  "admin-tag-list": { layout: TenantAdminLayout, component: () => import("./components/admin/settings/TagList.vue") },
   "admin-configuration": { layout: TenantAdminLayout, component: () => import("./components/admin/settings/ConfigurationForm.vue") },
   "admin-quote-list": { layout: TenantAdminLayout, component: () => import("./components/admin/quotes/QuoteList.vue") },
   "admin-quote-form": { layout: TenantAdminLayout, component: () => import("./components/admin/quotes/QuoteBuilder.vue") },

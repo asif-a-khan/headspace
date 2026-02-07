@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">{{ isEdit ? "Edit Role" : "Create Role" }}</h1>
     <v-card max-width="700">
       <v-card-text>
@@ -44,11 +43,6 @@ import { ref, reactive } from "vue";
 import { useRolesStore } from "@/stores/admin/roles";
 
 const data = window.__INITIAL_DATA__ || {};
-const breadcrumbs = [
-  { title: "Settings", href: "/admin/settings" },
-  { title: "Roles", href: "/admin/settings/roles" },
-  { title: data.role ? "Edit" : "Create", disabled: true },
-];
 
 const store = useRolesStore();
 store.hydrate(data);

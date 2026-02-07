@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">{{ isEdit ? "Edit User" : "Create User" }}</h1>
     <v-card max-width="700">
       <v-card-text>
@@ -71,11 +70,6 @@ import { ref, reactive } from "vue";
 import { useUsersStore } from "@/stores/admin/users";
 
 const data = window.__INITIAL_DATA__ || {};
-const breadcrumbs = [
-  { title: "Settings", href: "/admin/settings" },
-  { title: "Users", href: "/admin/settings/users" },
-  { title: data.user ? "Edit" : "Create", disabled: true },
-];
 
 const store = useUsersStore();
 const roles = data.roles || [];

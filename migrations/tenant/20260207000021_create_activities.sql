@@ -1,7 +1,7 @@
 CREATE TABLE activities (
     id            BIGSERIAL PRIMARY KEY,
     title         TEXT,
-    type          TEXT NOT NULL CHECK (type IN ('call', 'meeting', 'note', 'task')),
+    type          TEXT NOT NULL CHECK (type IN ('call', 'meeting', 'note', 'task', 'lunch')),
     comment       TEXT,
     additional    JSONB,
     location      TEXT,

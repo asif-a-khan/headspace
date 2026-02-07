@@ -41,6 +41,7 @@ pub async fn run() -> anyhow::Result<()> {
     tracing::info!("Main schema migrations applied");
 
     db::seed::seed_default_super_admin(db.writer()).await?;
+    db::seed::seed_demo_tenant(db.writer()).await?;
 
     db::migrate::run_all_tenant_migrations(db.writer()).await?;
     tracing::info!("Tenant schema migrations applied");

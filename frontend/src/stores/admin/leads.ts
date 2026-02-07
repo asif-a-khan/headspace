@@ -28,14 +28,25 @@ export interface Lead {
   rotten_days?: number | null;
 }
 
+export interface KanbanTag {
+  id: number;
+  name: string;
+  color: string | null;
+}
+
 export interface KanbanCard {
   id: number;
   title: string;
   lead_value: string | null;
   lead_pipeline_stage_id: number | null;
   person_name: string | null;
+  organization_name: string | null;
+  user_name: string | null;
+  source_name: string | null;
+  type_name: string | null;
   created_at: string;
   rotten_days?: number | null;
+  tags_json?: KanbanTag[] | null;
 }
 
 export interface PaginationMeta {

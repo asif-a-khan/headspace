@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <div class="d-flex align-center mb-4">
       <h1 class="text-h5">Attributes</h1>
       <v-spacer />
@@ -82,11 +81,6 @@ const permissions: string[] = data.permissions || [];
 const canCreate = computed(() => permissions.includes("settings.attributes.create") || data.permission_type === "all");
 const canEdit = computed(() => permissions.includes("settings.attributes.edit") || data.permission_type === "all");
 const canDelete = computed(() => permissions.includes("settings.attributes.delete") || data.permission_type === "all");
-
-const breadcrumbs = [
-  { title: "Settings", href: "/admin/settings" },
-  { title: "Attributes", disabled: true },
-];
 
 const entityTypes = [
   { label: "Leads", value: "leads" },

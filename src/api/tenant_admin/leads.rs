@@ -172,10 +172,22 @@ pub async fn kanban(
 
     let sql = format!(
         "SELECT l.id, l.title, l.lead_value, l.lead_pipeline_stage_id,
-                p.name AS person_name, l.created_at,
-                GREATEST(0, (NOW()::date - l.created_at::date) - COALESCE(pip.rotten_days, 30)) AS rotten_days
+                p.name AS person_name,
+                org.name AS organization_name,
+                NULLIF(CONCAT(u.first_name, ' ', u.last_name), ' ') AS user_name,
+                ls.name AS source_name,
+                lt.name AS type_name,
+                l.created_at,
+                GREATEST(0, (NOW()::date - l.created_at::date) - COALESCE(pip.rotten_days, 30)) AS rotten_days,
+                (SELECT json_agg(json_build_object('id', tg.id, 'name', tg.name, 'color', tg.color))
+                 FROM lead_tags ltg JOIN tags tg ON tg.id = ltg.tag_id
+                 WHERE ltg.lead_id = l.id) AS tags_json
          FROM leads l
          LEFT JOIN persons p ON p.id = l.person_id
+         LEFT JOIN organizations org ON org.id = p.organization_id
+         LEFT JOIN users u ON u.id = l.user_id
+         LEFT JOIN lead_sources ls ON ls.id = l.lead_source_id
+         LEFT JOIN lead_types lt ON lt.id = l.lead_type_id
          LEFT JOIN lead_pipelines pip ON pip.id = l.lead_pipeline_id
          WHERE l.status IS NULL{vp}{pipeline_filter}
          ORDER BY l.id DESC",

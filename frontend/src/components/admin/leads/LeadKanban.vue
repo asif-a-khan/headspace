@@ -46,53 +46,114 @@
         class="kanban-column"
       >
         <v-card variant="outlined" class="kanban-column-card">
-          <v-card-title class="text-subtitle-1 bg-surface-variant py-2 px-3">
+          <div class="kanban-column-header px-3 py-2">
             <div class="d-flex align-center">
-              {{ stage.stage_name }}
+              <span class="text-subtitle-2 font-weight-medium">
+                {{ stage.stage_name }} ({{ getStageCards(stage.id).length }})
+              </span>
               <v-spacer />
-              <v-chip size="x-small" variant="tonal">{{ getStageCards(stage.id).length }}</v-chip>
+              <span v-if="getStageValue(stage.id)" class="text-caption text-success font-weight-medium">
+                ${{ getStageValue(stage.id) }}
+              </span>
             </div>
-            <div v-if="getStageValue(stage.id)" class="text-caption text-success font-weight-medium">
-              ${{ getStageValue(stage.id) }}
-            </div>
-          </v-card-title>
+            <v-progress-linear
+              :model-value="getStageValuePercent(stage.id)"
+              color="success"
+              height="4"
+              class="mt-1"
+              rounded
+            />
+          </div>
           <v-card-text class="kanban-cards pa-2">
             <draggable
               :list="getStageCards(stage.id)"
               group="kanban"
               item-key="id"
+              ghost-class="kanban-ghost"
+              handle=".kanban-card"
+              :animation="200"
               class="kanban-drop-zone"
               @change="(evt: any) => onStageChange(stage.id, evt)"
             >
               <template #item="{ element }">
                 <div class="kanban-card mb-2">
                   <v-card
-                    variant="elevated"
+                    variant="flat"
                     class="pa-3 kanban-card-inner"
                     :class="{ 'rotten-card': element.rotten_days && element.rotten_days > 0 }"
                     @click="goToLead(element.id)"
                   >
-                    <div class="d-flex align-center">
-                      <div class="text-subtitle-2 font-weight-medium mb-1 flex-grow-1">{{ element.title }}</div>
+                    <!-- Person + Org with avatar -->
+                    <div v-if="element.person_name" class="d-flex align-start mb-2">
+                      <v-avatar size="28" color="primary" variant="tonal" class="mr-2 flex-shrink-0">
+                        <span class="text-caption font-weight-bold">
+                          {{ element.person_name.charAt(0).toUpperCase() }}
+                        </span>
+                      </v-avatar>
+                      <div class="flex-grow-1" style="min-width: 0">
+                        <div class="text-body-2 font-weight-medium text-truncate">
+                          {{ element.person_name }}
+                        </div>
+                        <div v-if="element.organization_name" class="text-caption text-medium-emphasis text-truncate">
+                          {{ element.organization_name }}
+                        </div>
+                      </div>
                       <v-tooltip v-if="element.rotten_days && element.rotten_days > 0" location="top">
+                        <template #activator="{ props }">
+                          <v-icon v-bind="props" color="error" size="small" class="ml-1 flex-shrink-0">mdi-alert-circle</v-icon>
+                        </template>
+                        Rotten for {{ element.rotten_days }} day{{ element.rotten_days === 1 ? '' : 's' }}
+                      </v-tooltip>
+                    </div>
+
+                    <!-- Rotten icon when no person -->
+                    <div v-else-if="element.rotten_days && element.rotten_days > 0" class="d-flex justify-end mb-1">
+                      <v-tooltip location="top">
                         <template #activator="{ props }">
                           <v-icon v-bind="props" color="error" size="small">mdi-alert-circle</v-icon>
                         </template>
                         Rotten for {{ element.rotten_days }} day{{ element.rotten_days === 1 ? '' : 's' }}
                       </v-tooltip>
                     </div>
-                    <div v-if="element.person_name" class="text-caption text-medium-emphasis">
-                      <v-icon size="x-small" class="mr-1">mdi-account</v-icon>{{ element.person_name }}
+
+                    <!-- Lead title -->
+                    <div class="text-subtitle-2 font-weight-medium mb-2">{{ element.title }}</div>
+
+                    <!-- Badge chips -->
+                    <div class="d-flex flex-wrap ga-1">
+                      <v-chip v-if="element.user_name" size="x-small" variant="tonal" color="info" prepend-icon="mdi-account">
+                        {{ element.user_name }}
+                      </v-chip>
+                      <v-chip v-if="element.lead_value" size="x-small" variant="tonal" color="success" prepend-icon="mdi-currency-usd">
+                        {{ Number(element.lead_value).toLocaleString() }}
+                      </v-chip>
+                      <v-chip v-if="element.source_name" size="x-small" variant="tonal" prepend-icon="mdi-source-branch">
+                        {{ element.source_name }}
+                      </v-chip>
+                      <v-chip v-if="element.type_name" size="x-small" variant="tonal" prepend-icon="mdi-tag">
+                        {{ element.type_name }}
+                      </v-chip>
                     </div>
-                    <div v-if="element.lead_value" class="text-caption text-success font-weight-medium mt-1">
-                      ${{ Number(element.lead_value).toLocaleString() }}
+
+                    <!-- Tags -->
+                    <div v-if="element.tags_json && element.tags_json.length" class="d-flex flex-wrap ga-1 mt-1">
+                      <v-chip
+                        v-for="tag in element.tags_json"
+                        :key="tag.id"
+                        :color="tag.color || '#6366F1'"
+                        size="x-small"
+                        variant="tonal"
+                      >
+                        {{ tag.name }}
+                      </v-chip>
                     </div>
                   </v-card>
                 </div>
               </template>
             </draggable>
-            <div v-if="!getStageCards(stage.id).length" class="text-center text-caption text-medium-emphasis pa-4">
-              No leads
+            <div v-if="!getStageCards(stage.id).length" class="text-center pa-6">
+              <v-icon size="40" color="grey-lighten-1" class="mb-2">mdi-clipboard-text-outline</v-icon>
+              <div class="text-caption text-medium-emphasis">No leads in this stage</div>
             </div>
           </v-card-text>
         </v-card>
@@ -144,7 +205,8 @@ watch(
         cards = cards.filter(
           (c) =>
             c.title.toLowerCase().includes(q) ||
-            (c.person_name && c.person_name.toLowerCase().includes(q))
+            (c.person_name && c.person_name.toLowerCase().includes(q)) ||
+            (c.organization_name && c.organization_name.toLowerCase().includes(q))
         );
       }
       cardsByStage[stage.id] = cards;
@@ -161,6 +223,17 @@ function getStageValue(stageId: number): string {
   const cards = store.kanbanCards.filter((c) => c.lead_pipeline_stage_id === stageId);
   const total = cards.reduce((sum, c) => sum + (c.lead_value ? Number(c.lead_value) : 0), 0);
   return total ? total.toLocaleString() : "";
+}
+
+const totalPipelineValue = computed(() =>
+  store.kanbanCards.reduce((sum, c) => sum + (c.lead_value ? Number(c.lead_value) : 0), 0)
+);
+
+function getStageValuePercent(stageId: number): number {
+  if (totalPipelineValue.value <= 0) return 0;
+  const cards = store.kanbanCards.filter((c) => c.lead_pipeline_stage_id === stageId);
+  const stageTotal = cards.reduce((sum, c) => sum + (c.lead_value ? Number(c.lead_value) : 0), 0);
+  return (stageTotal / totalPipelineValue.value) * 100;
 }
 
 async function onStageChange(stageId: number, evt: any) {
@@ -205,16 +278,20 @@ onMounted(() => {
   min-height: 500px;
 }
 .kanban-column {
-  min-width: 280px;
-  max-width: 320px;
+  width: 275px;
+  min-width: 275px;
+  max-width: 275px;
   flex-shrink: 0;
 }
 .kanban-column-card {
   height: 100%;
 }
+.kanban-column-header {
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
 .kanban-cards {
   min-height: 200px;
-  max-height: calc(100vh - 280px);
+  max-height: calc(100vh - 317px);
   overflow-y: auto;
 }
 .kanban-drop-zone {
@@ -228,8 +305,17 @@ onMounted(() => {
 }
 .kanban-card-inner {
   cursor: grab;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 .rotten-card {
   border-left: 3px solid rgb(var(--v-theme-error)) !important;
+}
+
+/* Drag ghost styling */
+:deep(.kanban-ghost) {
+  opacity: 0.5;
+}
+:deep(.kanban-ghost .kanban-card-inner) {
+  border: 2px dashed rgb(var(--v-theme-primary)) !important;
 }
 </style>

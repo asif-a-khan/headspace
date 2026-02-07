@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">Configuration</h1>
 
     <v-row>
@@ -176,11 +175,6 @@ import { ref, reactive, computed } from "vue";
 
 const data = window.__INITIAL_DATA__ || {};
 const config = reactive<Record<string, string>>(data.config || {});
-
-const breadcrumbs = [
-  { title: "Settings", href: "/admin/settings" },
-  { title: "Configuration", disabled: true },
-];
 
 const currencyOptions = [
   { label: "$ (USD)", value: "$" },

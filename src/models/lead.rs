@@ -85,7 +85,13 @@ pub struct LeadKanbanCard {
     pub lead_value: Option<Decimal>,
     pub lead_pipeline_stage_id: Option<i64>,
     pub person_name: Option<String>,
+    pub organization_name: Option<String>,
+    pub user_name: Option<String>,
+    pub source_name: Option<String>,
+    pub type_name: Option<String>,
     pub created_at: DateTime<Utc>,
     /// Days past rotten threshold (>0 means rotten).
     pub rotten_days: Option<i32>,
+    /// JSON array of {id, name, color} for tags attached to this lead.
+    pub tags_json: Option<serde_json::Value>,
 }

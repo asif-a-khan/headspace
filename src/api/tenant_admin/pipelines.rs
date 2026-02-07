@@ -23,7 +23,7 @@ pub struct PipelinePayload {
 
 #[derive(Deserialize)]
 pub struct StagePayload {
-    pub lead_stage_id: i64,
+    pub name: String,
     pub probability: Option<i32>,
     pub sort_order: Option<i32>,
 }
@@ -101,6 +101,13 @@ pub async fn store(
             // Create pipeline stages
             if let Some(stages) = &payload.stages {
                 for (i, s) in stages.iter().enumerate() {
+                    let stage_id = match find_or_create_stage(&mut guard, &s.name).await {
+                        Ok(id) => id,
+                        Err(e) => {
+                            tracing::error!("Failed to find/create stage '{}': {e}", s.name);
+                            continue;
+                        }
+                    };
                     let _ = guard
                         .execute(
                             sqlx::query(
@@ -108,7 +115,7 @@ pub async fn store(
                                  VALUES ($1, $2, $3, $4)",
                             )
                             .bind(pipeline.id)
-                            .bind(s.lead_stage_id)
+                            .bind(stage_id)
                             .bind(s.probability.unwrap_or(100))
                             .bind(s.sort_order.unwrap_or(i as i32)),
                         )
@@ -215,6 +222,19 @@ pub async fn update(
         Ok(Some(pipeline)) => {
             // Sync pipeline stages (preserving IDs for leads)
             if let Some(stages) = &payload.stages {
+                // Resolve all stage names to lead_stage IDs
+                let mut resolved: Vec<(i64, i32, i32)> = Vec::new(); // (lead_stage_id, probability, sort_order)
+                for (i, s) in stages.iter().enumerate() {
+                    match find_or_create_stage(&mut guard, &s.name).await {
+                        Ok(stage_id) => {
+                            resolved.push((stage_id, s.probability.unwrap_or(100), s.sort_order.unwrap_or(i as i32)));
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to find/create stage '{}': {e}", s.name);
+                        }
+                    }
+                }
+
                 // Get existing pipeline_stages for this pipeline
                 let existing = guard
                     .fetch_all(sqlx::query_as::<_, (i64, i64)>(
@@ -224,25 +244,23 @@ pub async fn update(
                     .unwrap_or_default();
 
                 let new_stage_ids: std::collections::HashSet<i64> =
-                    stages.iter().map(|s| s.lead_stage_id).collect();
+                    resolved.iter().map(|(sid, _, _)| *sid).collect();
 
                 // Update existing stages that are kept, insert new ones
-                for (i, s) in stages.iter().enumerate() {
-                    let existing_ps = existing.iter().find(|(_, lsid)| *lsid == s.lead_stage_id);
+                for (stage_id, probability, sort_order) in &resolved {
+                    let existing_ps = existing.iter().find(|(_, lsid)| lsid == stage_id);
                     if let Some((ps_id, _)) = existing_ps {
-                        // Update existing pipeline_stage
                         let _ = guard
                             .execute(
                                 sqlx::query(
                                     "UPDATE lead_pipeline_stages SET probability = $1, sort_order = $2 WHERE id = $3",
                                 )
-                                .bind(s.probability.unwrap_or(100))
-                                .bind(s.sort_order.unwrap_or(i as i32))
+                                .bind(probability)
+                                .bind(sort_order)
                                 .bind(ps_id),
                             )
                             .await;
                     } else {
-                        // Insert new pipeline_stage
                         let _ = guard
                             .execute(
                                 sqlx::query(
@@ -250,9 +268,9 @@ pub async fn update(
                                      VALUES ($1, $2, $3, $4)",
                                 )
                                 .bind(pipeline.id)
-                                .bind(s.lead_stage_id)
-                                .bind(s.probability.unwrap_or(100))
-                                .bind(s.sort_order.unwrap_or(i as i32)),
+                                .bind(stage_id)
+                                .bind(probability)
+                                .bind(sort_order),
                             )
                             .await;
                     }
@@ -266,7 +284,6 @@ pub async fn update(
                     .collect();
 
                 if !removed.is_empty() {
-                    // Find first remaining stage to reassign orphaned leads
                     let first_remaining = guard
                         .fetch_optional(sqlx::query_as::<_, (i64,)>(
                             "SELECT id FROM lead_pipeline_stages
@@ -282,7 +299,6 @@ pub async fn update(
 
                     for ps_id in &removed {
                         if let Some(target_id) = first_remaining {
-                            // Reassign leads from removed stage to first remaining stage
                             let _ = guard
                                 .execute(
                                     sqlx::query(
@@ -374,6 +390,22 @@ pub async fn destroy(
             (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed to delete pipeline." }))).into_response()
         }
     }
+}
+
+/// Find or create a lead_stage by name, returning its id.
+async fn find_or_create_stage(guard: &mut TenantGuard, name: &str) -> Result<i64, sqlx::Error> {
+    let code = name.to_lowercase().replace(' ', "-").replace(|c: char| !c.is_alphanumeric() && c != '-', "");
+    let row = guard
+        .fetch_one(sqlx::query_as::<_, (i64,)>(
+            "INSERT INTO lead_stages (code, name, is_user_defined)
+             VALUES ($1, $2, true)
+             ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name
+             RETURNING id",
+        )
+        .bind(&code)
+        .bind(name))
+        .await?;
+    Ok(row.0)
 }
 
 fn internal_error() -> Response {

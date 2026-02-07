@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <div class="d-flex align-center mb-4">
       <h1 class="text-h5">Groups</h1>
       <v-spacer />
@@ -64,11 +63,6 @@ const permissions: string[] = data.permissions || [];
 const canCreate = computed(() => permissions.includes("settings.groups.create") || data.permission_type === "all");
 const canEdit = computed(() => permissions.includes("settings.groups.edit") || data.permission_type === "all");
 const canDelete = computed(() => permissions.includes("settings.groups.delete") || data.permission_type === "all");
-
-const breadcrumbs = [
-  { title: "Settings", href: "/admin/settings" },
-  { title: "Groups", disabled: true },
-];
 
 const store = useGroupsStore();
 store.hydrate(data);

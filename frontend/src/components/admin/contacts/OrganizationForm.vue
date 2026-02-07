@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">{{ isEdit ? "Edit Organization" : "Create Organization" }}</h1>
 
     <v-card max-width="700">
@@ -79,12 +78,6 @@ import { useOrganizationsStore } from "@/stores/admin/organizations";
 const data = window.__INITIAL_DATA__ || {};
 const store = useOrganizationsStore();
 const isEdit = computed(() => !!data.organization);
-
-const breadcrumbs = computed(() => [
-  { title: "Contacts", disabled: true },
-  { title: "Organizations", href: "/admin/contacts/organizations" },
-  { title: isEdit.value ? "Edit" : "Create", disabled: true },
-]);
 
 interface UserOption { id: number; label: string }
 

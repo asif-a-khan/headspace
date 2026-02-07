@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">{{ isEdit ? "Edit Group" : "Create Group" }}</h1>
     <v-card max-width="700">
       <v-card-text>
@@ -27,11 +26,6 @@ import { ref, reactive } from "vue";
 import { useGroupsStore } from "@/stores/admin/groups";
 
 const data = window.__INITIAL_DATA__ || {};
-const breadcrumbs = [
-  { title: "Settings", href: "/admin/settings" },
-  { title: "Groups", href: "/admin/settings/groups" },
-  { title: data.group ? "Edit" : "Create", disabled: true },
-];
 
 const store = useGroupsStore();
 store.hydrate(data);

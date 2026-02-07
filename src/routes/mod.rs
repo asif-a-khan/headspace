@@ -111,6 +111,7 @@ fn tenant_admin_protected_routes() -> Router {
         .route("/admin/settings/pipelines/{id}/edit", get(handlers::tenant_admin::pipelines::pipelines_edit))
         .route("/admin/settings/sources", get(handlers::tenant_admin::pipelines::sources_index))
         .route("/admin/settings/types", get(handlers::tenant_admin::pipelines::types_index))
+        .route("/admin/settings/tags", get(handlers::tenant_admin::settings::tags_index))
         .route("/admin/settings/configuration", get(handlers::tenant_admin::settings::configuration_index))
         // Dashboard API
         .route("/admin/api/dashboard/stats", get(api::tenant_admin::dashboard::stats))

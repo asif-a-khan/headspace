@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">{{ isEdit ? "Edit Lead" : "Create Lead" }}</h1>
 
     <v-card max-width="700">
@@ -117,11 +116,6 @@ import { useLeadsStore } from "@/stores/admin/leads";
 const data = window.__INITIAL_DATA__ || {};
 const store = useLeadsStore();
 const isEdit = computed(() => !!data.lead);
-
-const breadcrumbs = computed(() => [
-  { title: "Leads", href: "/admin/leads" },
-  { title: isEdit.value ? "Edit" : "Create", disabled: true },
-]);
 
 const pipelineItems = computed(() => data.pipelines || []);
 const allStages = computed(() => data.stages || []);
