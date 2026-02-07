@@ -2,7 +2,7 @@
 //!
 //! All application routes are defined here, grouped by middleware requirements.
 
-use axum::routing::{get, post};
+use axum::routing::{get, post, put};
 use axum::{middleware, Extension, Router};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
@@ -90,6 +90,8 @@ fn tenant_admin_protected_routes() -> Router {
     Router::new()
         .route("/admin/logout", post(handlers::tenant_admin::auth::logout))
         .route("/admin/dashboard", get(handlers::tenant_admin::dashboard::index))
+        // Account page
+        .route("/admin/account", get(handlers::tenant_admin::account::edit))
         // Settings pages
         .route("/admin/settings", get(handlers::tenant_admin::settings::index))
         .route("/admin/settings/users", get(handlers::tenant_admin::settings::users_index))
@@ -109,8 +111,11 @@ fn tenant_admin_protected_routes() -> Router {
         .route("/admin/settings/pipelines/{id}/edit", get(handlers::tenant_admin::pipelines::pipelines_edit))
         .route("/admin/settings/sources", get(handlers::tenant_admin::pipelines::sources_index))
         .route("/admin/settings/types", get(handlers::tenant_admin::pipelines::types_index))
+        .route("/admin/settings/configuration", get(handlers::tenant_admin::settings::configuration_index))
         // Dashboard API
         .route("/admin/api/dashboard/stats", get(api::tenant_admin::dashboard::stats))
+        // Global search
+        .route("/admin/api/search", get(api::tenant_admin::search::global_search))
         // Quote pages
         .route("/admin/quotes", get(handlers::tenant_admin::quotes::index))
         .route("/admin/quotes/create", get(handlers::tenant_admin::quotes::create))
@@ -126,15 +131,22 @@ fn tenant_admin_protected_routes() -> Router {
         // Lead pages
         .route("/admin/leads", get(handlers::tenant_admin::leads::index))
         .route("/admin/leads/create", get(handlers::tenant_admin::leads::create))
+        .route("/admin/leads/{id}", get(handlers::tenant_admin::leads::show))
         .route("/admin/leads/{id}/edit", get(handlers::tenant_admin::leads::edit))
         .route("/admin/leads/kanban", get(handlers::tenant_admin::leads::kanban_page))
+        // Mail page
+        .route("/admin/mail", get(handlers::tenant_admin::emails::index))
         // Contact pages
         .route("/admin/contacts/persons", get(handlers::tenant_admin::contacts::persons_index))
         .route("/admin/contacts/persons/create", get(handlers::tenant_admin::contacts::persons_create))
+        .route("/admin/contacts/persons/{id}", get(handlers::tenant_admin::contacts::persons_show))
         .route("/admin/contacts/persons/{id}/edit", get(handlers::tenant_admin::contacts::persons_edit))
         .route("/admin/contacts/organizations", get(handlers::tenant_admin::contacts::organizations_index))
         .route("/admin/contacts/organizations/create", get(handlers::tenant_admin::contacts::organizations_create))
         .route("/admin/contacts/organizations/{id}/edit", get(handlers::tenant_admin::contacts::organizations_edit))
+        // Account API routes
+        .route("/admin/api/account", get(api::tenant_admin::account::show).put(api::tenant_admin::account::update))
+        .route("/admin/api/account/password", put(api::tenant_admin::account::update_password))
         // Settings API routes
         .route("/admin/api/settings/users", get(api::tenant_admin::users::list).post(api::tenant_admin::users::store))
         .route("/admin/api/settings/users/{id}", get(api::tenant_admin::users::show).put(api::tenant_admin::users::update).delete(api::tenant_admin::users::destroy))
@@ -151,29 +163,60 @@ fn tenant_admin_protected_routes() -> Router {
         .route("/admin/api/settings/sources/{id}", get(api::tenant_admin::sources::show).put(api::tenant_admin::sources::update).delete(api::tenant_admin::sources::destroy))
         .route("/admin/api/settings/types", get(api::tenant_admin::types::list).post(api::tenant_admin::types::store))
         .route("/admin/api/settings/types/{id}", get(api::tenant_admin::types::show).put(api::tenant_admin::types::update).delete(api::tenant_admin::types::destroy))
+        // Email API routes
+        .route("/admin/api/emails", get(api::tenant_admin::emails::list).post(api::tenant_admin::emails::store))
+        .route("/admin/api/emails/{id}", get(api::tenant_admin::emails::show).put(api::tenant_admin::emails::update).delete(api::tenant_admin::emails::destroy))
+        // Configuration API routes
+        .route("/admin/api/settings/config", get(api::tenant_admin::config::list).put(api::tenant_admin::config::update))
         // Contact API routes
         .route("/admin/api/contacts/persons", get(api::tenant_admin::persons::list).post(api::tenant_admin::persons::store))
+        .route("/admin/api/contacts/persons/search", get(api::tenant_admin::persons::search))
         .route("/admin/api/contacts/persons/{id}", get(api::tenant_admin::persons::show).put(api::tenant_admin::persons::update).delete(api::tenant_admin::persons::destroy))
         .route("/admin/api/contacts/organizations", get(api::tenant_admin::organizations::list).post(api::tenant_admin::organizations::store))
         .route("/admin/api/contacts/organizations/{id}", get(api::tenant_admin::organizations::show).put(api::tenant_admin::organizations::update).delete(api::tenant_admin::organizations::destroy))
         // Quote API routes
         .route("/admin/api/quotes", get(api::tenant_admin::quotes::list).post(api::tenant_admin::quotes::store))
         .route("/admin/api/quotes/{id}", get(api::tenant_admin::quotes::show).put(api::tenant_admin::quotes::update).delete(api::tenant_admin::quotes::destroy))
+        .route("/admin/api/quotes/{id}/pdf", get(api::tenant_admin::quotes::download_pdf))
         // Activity API routes
         .route("/admin/api/activities", get(api::tenant_admin::activities::list).post(api::tenant_admin::activities::store))
         .route("/admin/api/activities/{id}", get(api::tenant_admin::activities::show).put(api::tenant_admin::activities::update).delete(api::tenant_admin::activities::destroy))
+        .route("/admin/api/activities/{id}/files", get(api::tenant_admin::activities::list_files).post(api::tenant_admin::activities::upload_file))
+        .route("/admin/api/activities/{id}/files/{file_id}", get(api::tenant_admin::activities::download_file).delete(api::tenant_admin::activities::delete_file))
         // Product API routes
         .route("/admin/api/products", get(api::tenant_admin::products::list).post(api::tenant_admin::products::store))
+        .route("/admin/api/products/search", get(api::tenant_admin::products::search))
         .route("/admin/api/products/{id}", get(api::tenant_admin::products::show).put(api::tenant_admin::products::update).delete(api::tenant_admin::products::destroy))
         // Lead API routes
         .route("/admin/api/leads", get(api::tenant_admin::leads::list).post(api::tenant_admin::leads::store))
         .route("/admin/api/leads/kanban", get(api::tenant_admin::leads::kanban))
         .route("/admin/api/leads/{id}", get(api::tenant_admin::leads::show).put(api::tenant_admin::leads::update).delete(api::tenant_admin::leads::destroy))
         .route("/admin/api/leads/{id}/stage", axum::routing::put(api::tenant_admin::leads::update_stage))
+        .route("/admin/api/leads/{id}/status", axum::routing::put(api::tenant_admin::leads::update_status))
+        .route("/admin/api/leads/{id}/products", get(api::tenant_admin::leads::list_products).post(api::tenant_admin::leads::add_product))
+        .route("/admin/api/leads/{id}/products/{product_line_id}", axum::routing::delete(api::tenant_admin::leads::remove_product))
+        .route("/admin/api/leads/{id}/quotes", get(api::tenant_admin::leads::list_quotes).post(api::tenant_admin::leads::link_quote))
+        .route("/admin/api/leads/{id}/quotes/{quote_id}", axum::routing::delete(api::tenant_admin::leads::unlink_quote))
         // Tag API routes
         .route("/admin/api/tags", get(api::tenant_admin::tags::list).post(api::tenant_admin::tags::store))
         .route("/admin/api/tags/{id}", get(api::tenant_admin::tags::show).put(api::tenant_admin::tags::update).delete(api::tenant_admin::tags::destroy))
         .route("/admin/api/tags/attach", post(api::tenant_admin::tags::attach))
         .route("/admin/api/tags/detach", post(api::tenant_admin::tags::detach))
+        // Mass delete routes
+        .route("/admin/api/leads/mass-delete", post(api::tenant_admin::leads::mass_delete))
+        .route("/admin/api/contacts/persons/mass-delete", post(api::tenant_admin::persons::mass_delete))
+        .route("/admin/api/contacts/organizations/mass-delete", post(api::tenant_admin::organizations::mass_delete))
+        .route("/admin/api/products/mass-delete", post(api::tenant_admin::products::mass_delete))
+        .route("/admin/api/quotes/mass-delete", post(api::tenant_admin::quotes::mass_delete))
+        .route("/admin/api/activities/mass-delete", post(api::tenant_admin::activities::mass_delete))
+        // Data transfer (CSV import/export)
+        .route("/admin/api/leads/export", get(api::tenant_admin::data_transfer::export_leads))
+        .route("/admin/api/leads/import", post(api::tenant_admin::data_transfer::import_leads))
+        .route("/admin/api/contacts/persons/export", get(api::tenant_admin::data_transfer::export_persons))
+        .route("/admin/api/contacts/persons/import", post(api::tenant_admin::data_transfer::import_persons))
+        .route("/admin/api/contacts/organizations/export", get(api::tenant_admin::data_transfer::export_organizations))
+        .route("/admin/api/contacts/organizations/import", post(api::tenant_admin::data_transfer::import_organizations))
+        .route("/admin/api/products/export", get(api::tenant_admin::data_transfer::export_products))
+        .route("/admin/api/products/import", post(api::tenant_admin::data_transfer::import_products))
         .layer(middleware::from_fn(require_tenant_admin))
 }

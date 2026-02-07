@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">{{ isEdit ? "Edit Quote" : "Create Quote" }}</h1>
 
     <v-card class="mb-4">
@@ -43,6 +42,35 @@
               type="date"
             />
           </div>
+
+          <!-- Addresses -->
+          <v-expansion-panels variant="accordion" class="mb-4">
+            <v-expansion-panel title="Billing Address">
+              <v-expansion-panel-text>
+                <v-text-field v-model="billing.address" label="Street Address" density="compact" class="mb-2" />
+                <div class="d-flex ga-3">
+                  <v-text-field v-model="billing.city" label="City" density="compact" />
+                  <v-text-field v-model="billing.state" label="State" density="compact" />
+                  <v-text-field v-model="billing.postcode" label="Postal Code" density="compact" />
+                  <v-text-field v-model="billing.country" label="Country" density="compact" />
+                </div>
+              </v-expansion-panel-text>
+            </v-expansion-panel>
+            <v-expansion-panel title="Shipping Address">
+              <v-expansion-panel-text>
+                <v-btn size="x-small" variant="tonal" class="mb-2" @click="copyBillingToShipping">
+                  Copy from Billing
+                </v-btn>
+                <v-text-field v-model="shipping.address" label="Street Address" density="compact" class="mb-2" />
+                <div class="d-flex ga-3">
+                  <v-text-field v-model="shipping.city" label="City" density="compact" />
+                  <v-text-field v-model="shipping.state" label="State" density="compact" />
+                  <v-text-field v-model="shipping.postcode" label="Postal Code" density="compact" />
+                  <v-text-field v-model="shipping.country" label="Country" density="compact" />
+                </div>
+              </v-expansion-panel-text>
+            </v-expansion-panel>
+          </v-expansion-panels>
         </v-form>
       </v-card-text>
     </v-card>
@@ -61,9 +89,11 @@
           <thead>
             <tr>
               <th>Product</th>
-              <th style="width: 80px">Qty</th>
-              <th style="width: 120px">Price</th>
-              <th style="width: 120px">Total</th>
+              <th style="width: 70px">Qty</th>
+              <th style="width: 110px">Price</th>
+              <th style="width: 80px">Disc %</th>
+              <th style="width: 80px">Tax %</th>
+              <th style="width: 110px">Total</th>
               <th style="width: 50px"></th>
             </tr>
           </thead>
@@ -102,6 +132,31 @@
                   @update:model-value="calcItemTotal(item)"
                 />
               </td>
+              <td>
+                <v-text-field
+                  v-model.number="item.discount_percent"
+                  type="number"
+                  step="0.1"
+                  density="compact"
+                  hide-details
+                  suffix="%"
+                  min="0"
+                  max="100"
+                  @update:model-value="calcItemTotal(item)"
+                />
+              </td>
+              <td>
+                <v-text-field
+                  v-model.number="item.tax_percent"
+                  type="number"
+                  step="0.1"
+                  density="compact"
+                  hide-details
+                  suffix="%"
+                  min="0"
+                  @update:model-value="calcItemTotal(item)"
+                />
+              </td>
               <td class="font-weight-medium">
                 ${{ item.total.toFixed(2) }}
               </td>
@@ -110,7 +165,7 @@
               </td>
             </tr>
             <tr v-if="!activeItems.length">
-              <td colspan="5" class="text-center text-medium-emphasis pa-4">
+              <td colspan="7" class="text-center text-medium-emphasis pa-4">
                 No items yet. Click "Add Item" to start.
               </td>
             </tr>
@@ -118,10 +173,32 @@
         </v-table>
 
         <div class="d-flex justify-end mt-4">
-          <div style="width: 300px">
+          <div style="width: 350px">
             <div class="d-flex justify-space-between mb-1">
               <span>Sub Total:</span>
               <strong>${{ subTotal.toFixed(2) }}</strong>
+            </div>
+            <div class="d-flex justify-space-between mb-1 align-center">
+              <span>Discount (%):</span>
+              <v-text-field
+                v-model.number="form.discount_percent"
+                type="number"
+                step="0.1"
+                density="compact"
+                hide-details
+                suffix="%"
+                min="0"
+                max="100"
+                style="max-width: 100px"
+              />
+            </div>
+            <div class="d-flex justify-space-between mb-1">
+              <span class="text-medium-emphasis">Discount Amount:</span>
+              <span>-${{ discountAmount.toFixed(2) }}</span>
+            </div>
+            <div class="d-flex justify-space-between mb-1">
+              <span class="text-medium-emphasis">Tax Total:</span>
+              <span>${{ taxTotal.toFixed(2) }}</span>
             </div>
             <div class="d-flex justify-space-between mb-1 align-center">
               <span>Adjustment:</span>
@@ -167,11 +244,6 @@ const data = window.__INITIAL_DATA__ || {};
 const store = useQuotesStore();
 const isEdit = computed(() => !!data.quote);
 
-const breadcrumbs = computed(() => [
-  { title: "Quotes", href: "/admin/quotes" },
-  { title: isEdit.value ? "Edit" : "Create", disabled: true },
-]);
-
 const personItems = computed(() => data.persons || []);
 const productItems = computed(() =>
   (data.products || []).map((p: any) => ({
@@ -195,7 +267,41 @@ const form = reactive({
   user_id: quote?.user_id || null,
   expired_at: quote?.expired_at ? quote.expired_at.split("T")[0] : "",
   adjustment_amount: Number(quote?.adjustment_amount || 0),
+  discount_percent: Number(quote?.discount_percent || 0),
 });
+
+// Address state
+interface Address {
+  address: string;
+  city: string;
+  state: string;
+  postcode: string;
+  country: string;
+}
+
+const billing = reactive<Address>({
+  address: quote?.billing_address?.address || "",
+  city: quote?.billing_address?.city || "",
+  state: quote?.billing_address?.state || "",
+  postcode: quote?.billing_address?.postcode || "",
+  country: quote?.billing_address?.country || "",
+});
+
+const shipping = reactive<Address>({
+  address: quote?.shipping_address?.address || "",
+  city: quote?.shipping_address?.city || "",
+  state: quote?.shipping_address?.state || "",
+  postcode: quote?.shipping_address?.postcode || "",
+  country: quote?.shipping_address?.country || "",
+});
+
+function copyBillingToShipping() {
+  shipping.address = billing.address;
+  shipping.city = billing.city;
+  shipping.state = billing.state;
+  shipping.postcode = billing.postcode;
+  shipping.country = billing.country;
+}
 
 const items = ref<QuoteItem[]>(
   (data.items || []).map((item: any) => ({
@@ -251,11 +357,25 @@ function onProductSelect(item: QuoteItem) {
 }
 
 function calcItemTotal(item: QuoteItem) {
-  item.total = (item.quantity || 0) * (item.price || 0);
+  const base = (item.quantity || 0) * (item.price || 0);
+  const discAmt = base * ((item.discount_percent || 0) / 100);
+  const afterDisc = base - discAmt;
+  const taxAmt = afterDisc * ((item.tax_percent || 0) / 100);
+  item.discount_amount = discAmt;
+  item.tax_amount = taxAmt;
+  item.total = afterDisc + taxAmt;
 }
 
 const subTotal = computed(() => activeItems.value.reduce((sum, i) => sum + i.total, 0));
-const grandTotal = computed(() => subTotal.value + (form.adjustment_amount || 0));
+const discountAmount = computed(() => subTotal.value * ((form.discount_percent || 0) / 100));
+const taxTotal = computed(() => activeItems.value.reduce((sum, i) => sum + (i.tax_amount || 0), 0));
+const grandTotal = computed(
+  () => subTotal.value - discountAmount.value + (form.adjustment_amount || 0),
+);
+
+function isAddressEmpty(addr: Address): boolean {
+  return !addr.address && !addr.city && !addr.state && !addr.postcode && !addr.country;
+}
 
 const rules = {
   required: (v: any) => !!v || "Required",
@@ -278,12 +398,14 @@ async function submit() {
       person_id: form.person_id || null,
       user_id: form.user_id || null,
       expired_at: form.expired_at ? new Date(form.expired_at).toISOString() : null,
+      billing_address: isAddressEmpty(billing) ? null : { ...billing },
+      shipping_address: isAddressEmpty(shipping) ? null : { ...shipping },
       sub_total: subTotal.value,
       grand_total: grandTotal.value,
       adjustment_amount: form.adjustment_amount || 0,
-      discount_percent: 0,
-      discount_amount: 0,
-      tax_amount: 0,
+      discount_percent: form.discount_percent || 0,
+      discount_amount: discountAmount.value,
+      tax_amount: taxTotal.value,
       items: items.value,
     };
 

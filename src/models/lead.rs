@@ -47,6 +47,34 @@ pub struct LeadRow {
     pub type_name: Option<String>,
     pub stage_name: Option<String>,
     pub pipeline_name: Option<String>,
+    /// Days past rotten threshold (>0 means rotten). NULL for won/lost leads.
+    pub rotten_days: Option<i32>,
+}
+
+/// Lead product line item.
+#[derive(Debug, Clone, sqlx::FromRow, Serialize)]
+pub struct LeadProduct {
+    pub id: i64,
+    pub lead_id: i64,
+    pub product_id: i64,
+    pub quantity: i32,
+    pub price: Decimal,
+    pub amount: Decimal,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Lead product with product name for display.
+#[derive(Debug, Clone, sqlx::FromRow, Serialize)]
+pub struct LeadProductRow {
+    pub id: i64,
+    pub lead_id: i64,
+    pub product_id: i64,
+    pub quantity: i32,
+    pub price: Decimal,
+    pub amount: Decimal,
+    pub product_name: String,
+    pub product_sku: String,
 }
 
 /// Minimal lead info for kanban cards.
@@ -58,4 +86,6 @@ pub struct LeadKanbanCard {
     pub lead_pipeline_stage_id: Option<i64>,
     pub person_name: Option<String>,
     pub created_at: DateTime<Utc>,
+    /// Days past rotten threshold (>0 means rotten).
+    pub rotten_days: Option<i32>,
 }

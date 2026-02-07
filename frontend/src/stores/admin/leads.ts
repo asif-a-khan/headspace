@@ -25,6 +25,7 @@ export interface Lead {
   type_name?: string | null;
   stage_name?: string | null;
   pipeline_name?: string | null;
+  rotten_days?: number | null;
 }
 
 export interface KanbanCard {
@@ -34,25 +35,49 @@ export interface KanbanCard {
   lead_pipeline_stage_id: number | null;
   person_name: string | null;
   created_at: string;
+  rotten_days?: number | null;
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  per_page: number;
+  last_page: number;
 }
 
 export const useLeadsStore = defineStore("admin-leads", () => {
   const leads = ref<Lead[]>([]);
   const kanbanCards = ref<KanbanCard[]>([]);
   const loading = ref(false);
+  const meta = ref<PaginationMeta>({ total: 0, page: 1, per_page: 15, last_page: 1 });
 
-  function hydrate(data: { leads?: Lead[] }) {
+  function hydrate(data: { leads?: Lead[]; meta?: PaginationMeta }) {
     if (data.leads) leads.value = data.leads;
+    if (data.meta) meta.value = data.meta;
   }
 
-  async function fetchAll(pipelineId?: number) {
+  async function fetchAll(opts?: {
+    pipelineId?: number;
+    page?: number;
+    perPage?: number;
+    search?: string;
+    sortField?: string;
+    sortDir?: string;
+  }) {
     loading.value = true;
     try {
-      const url = pipelineId
-        ? `/admin/api/leads?pipeline_id=${pipelineId}`
-        : "/admin/api/leads";
-      const res = await get<{ data: Lead[] }>(url);
+      const params = new URLSearchParams();
+      if (opts?.pipelineId) params.set("pipeline_id", String(opts.pipelineId));
+      if (opts?.page) params.set("page", String(opts.page));
+      if (opts?.perPage) params.set("per_page", String(opts.perPage));
+      if (opts?.search) params.set("search", opts.search);
+      if (opts?.sortField) params.set("sort_field", opts.sortField);
+      if (opts?.sortDir) params.set("sort_dir", opts.sortDir);
+      const qs = params.toString();
+      const url = `/admin/api/leads${qs ? "?" + qs : ""}`;
+      const res = await get<{ data: Lead[]; meta: PaginationMeta }>(url);
       leads.value = res.data;
+      if (res.meta) meta.value = res.meta;
     } finally {
       loading.value = false;
     }
@@ -91,5 +116,5 @@ export const useLeadsStore = defineStore("admin-leads", () => {
     kanbanCards.value = kanbanCards.value.filter((c) => c.id !== id);
   }
 
-  return { leads, kanbanCards, loading, hydrate, fetchAll, fetchKanban, create, update, moveToStage, remove };
+  return { leads, kanbanCards, loading, meta, hydrate, fetchAll, fetchKanban, create, update, moveToStage, remove };
 });

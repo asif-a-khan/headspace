@@ -4,5 +4,6 @@
 //! They share query logic with HTML handlers in `handlers/` via the mirror
 //! routes pattern (see `docs/architecture/DESIGN_PATTERN.md`).
 
+pub mod pagination;
 pub mod super_admin;
 pub mod tenant_admin;

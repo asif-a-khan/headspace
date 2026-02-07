@@ -10,6 +10,14 @@ use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;
 use crate::views::tenant_admin::{ActivityCreate, ActivityEdit, ActivityIndex};
 
+#[derive(sqlx::FromRow, serde::Serialize)]
+struct ParticipantInfo {
+    user_id: Option<i64>,
+    user_name: Option<String>,
+    person_id: Option<i64>,
+    person_name: Option<String>,
+}
+
 pub async fn index(
     session: Session,
     Extension(db): Extension<Database>,
@@ -109,6 +117,29 @@ pub async fn edit(
         .ok()
         .flatten();
 
+    // Fetch participants for this activity
+    let participants = guard
+        .fetch_all(sqlx::query_as::<_, ParticipantInfo>(
+            "SELECT ap.user_id,
+                    CASE WHEN ap.user_id IS NOT NULL THEN CONCAT(u.first_name, ' ', u.last_name) END AS user_name,
+                    ap.person_id,
+                    p.name AS person_name
+             FROM activity_participants ap
+             LEFT JOIN users u ON u.id = ap.user_id
+             LEFT JOIN persons p ON p.id = ap.person_id
+             WHERE ap.activity_id = $1
+             ORDER BY ap.id",
+        ).bind(id))
+        .await
+        .unwrap_or_default();
+
+    let files = guard
+        .fetch_all(sqlx::query_as::<_, crate::api::tenant_admin::activities::ActivityFile>(
+            "SELECT * FROM activity_files WHERE activity_id = $1 ORDER BY id",
+        ).bind(id))
+        .await
+        .unwrap_or_default();
+
     let users = guard
         .fetch_all(sqlx::query_as::<_, TenantUser>(
             "SELECT * FROM users WHERE status = true ORDER BY first_name",
@@ -120,6 +151,8 @@ pub async fn edit(
 
     let initial_data = serde_json::json!({
         "activity": activity,
+        "participants": participants,
+        "files": files,
         "users": users,
         "admin_name": user.full_name(),
         "company_name": company.name,

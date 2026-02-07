@@ -9,7 +9,7 @@ use crate::models::company::Company;
 use crate::models::lead::LeadRow;
 use crate::models::pipeline::{LeadPipeline, LeadSource, LeadType, PipelineStageDetail};
 use crate::models::tenant_admin::TenantUser;
-use crate::views::tenant_admin::{LeadCreate, LeadEdit, LeadIndex, LeadKanbanView};
+use crate::views::tenant_admin::{LeadCreate, LeadEdit, LeadIndex, LeadKanbanView, LeadShow};
 
 use crate::api::tenant_admin::contacts::view_permission_filter;
 
@@ -29,6 +29,28 @@ pub async fn index(
     };
 
     let vp = view_permission_filter(user.id, &user.view_permission);
+    let vp_lead = vp.replace("t.user_id", "l.user_id");
+    let from_clause = "FROM leads l
+         LEFT JOIN persons p ON p.id = l.person_id
+         LEFT JOIN users u ON u.id = l.user_id
+         LEFT JOIN lead_sources ls ON ls.id = l.lead_source_id
+         LEFT JOIN lead_types lt ON lt.id = l.lead_type_id
+         LEFT JOIN lead_pipeline_stages lps ON lps.id = l.lead_pipeline_stage_id
+         LEFT JOIN lead_stages stg ON stg.id = lps.lead_stage_id
+         LEFT JOIN lead_pipelines pip ON pip.id = l.lead_pipeline_id";
+    let where_clause = format!("WHERE true{vp_lead}");
+
+    let per_page: i64 = 15;
+
+    // Count total
+    let total: i64 = guard
+        .fetch_one(sqlx::query_as::<_, crate::api::pagination::CountRow>(
+            &format!("SELECT COUNT(*) AS count {from_clause} {where_clause}"),
+        ))
+        .await
+        .map(|r| r.count.unwrap_or(0))
+        .unwrap_or(0);
+
     let sql = format!(
         "SELECT l.*,
                 p.name AS person_name,
@@ -36,18 +58,14 @@ pub async fn index(
                 ls.name AS source_name,
                 lt.name AS type_name,
                 stg.name AS stage_name,
-                pip.name AS pipeline_name
-         FROM leads l
-         LEFT JOIN persons p ON p.id = l.person_id
-         LEFT JOIN users u ON u.id = l.user_id
-         LEFT JOIN lead_sources ls ON ls.id = l.lead_source_id
-         LEFT JOIN lead_types lt ON lt.id = l.lead_type_id
-         LEFT JOIN lead_pipeline_stages lps ON lps.id = l.lead_pipeline_stage_id
-         LEFT JOIN lead_stages stg ON stg.id = lps.lead_stage_id
-         LEFT JOIN lead_pipelines pip ON pip.id = l.lead_pipeline_id
-         WHERE true{vp}
-         ORDER BY l.id DESC",
-        vp = vp.replace("t.user_id", "l.user_id"),
+                pip.name AS pipeline_name,
+                CASE WHEN l.status IS NOT NULL THEN NULL
+                     ELSE GREATEST(0, (NOW()::date - l.created_at::date) - COALESCE(pip.rotten_days, 30))
+                END AS rotten_days
+         {from_clause}
+         {where_clause}
+         ORDER BY l.id DESC
+         LIMIT {per_page}",
     );
 
     let leads = guard
@@ -64,8 +82,10 @@ pub async fn index(
 
     let _ = guard.release().await;
 
+    let last_page = if per_page > 0 { (total + per_page - 1) / per_page } else { 1 };
     let initial_data = serde_json::json!({
         "leads": leads,
+        "meta": { "total": total, "page": 1, "per_page": per_page, "last_page": last_page },
         "pipelines": pipelines,
         "admin_name": user.full_name(),
         "company_name": company.name,
@@ -236,6 +256,191 @@ pub async fn edit(
         "company_name": company.name,
     });
     LeadEdit::new(csrf_token, initial_data.to_string()).into_response()
+}
+
+pub async fn show(
+    session: Session,
+    Extension(db): Extension<Database>,
+    Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
+    Path(id): Path<i64>,
+) -> Response {
+    let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
+
+    let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
+        Ok(g) => g,
+        Err(_) => {
+            return LeadShow::new(csrf_token, "{}".to_string()).into_response();
+        }
+    };
+
+    let lead = guard
+        .fetch_optional(
+            sqlx::query_as::<_, crate::models::lead::Lead>(
+                "SELECT * FROM leads WHERE id = $1",
+            )
+            .bind(id),
+        )
+        .await
+        .ok()
+        .flatten();
+
+    if lead.is_none() {
+        let _ = guard.release().await;
+        return LeadShow::new(csrf_token, "{}".to_string()).into_response();
+    }
+    let lead = lead.unwrap();
+
+    // Fetch related names
+    let person = if let Some(pid) = lead.person_id {
+        guard
+            .fetch_optional(
+                sqlx::query_as::<_, crate::models::person::Person>(
+                    "SELECT * FROM persons WHERE id = $1",
+                )
+                .bind(pid),
+            )
+            .await
+            .ok()
+            .flatten()
+    } else {
+        None
+    };
+
+    let user_name: Option<String> = if let Some(uid) = lead.user_id {
+        guard
+            .fetch_optional(sqlx::query_as::<_, (String,)>(
+                "SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = $1",
+            ).bind(uid))
+            .await
+            .ok()
+            .flatten()
+            .map(|(n,)| n)
+    } else {
+        None
+    };
+
+    let source_name: Option<String> = if let Some(sid) = lead.lead_source_id {
+        guard
+            .fetch_optional(sqlx::query_as::<_, (String,)>(
+                "SELECT name FROM lead_sources WHERE id = $1",
+            ).bind(sid))
+            .await
+            .ok()
+            .flatten()
+            .map(|(n,)| n)
+    } else {
+        None
+    };
+
+    let type_name: Option<String> = if let Some(tid) = lead.lead_type_id {
+        guard
+            .fetch_optional(sqlx::query_as::<_, (String,)>(
+                "SELECT name FROM lead_types WHERE id = $1",
+            ).bind(tid))
+            .await
+            .ok()
+            .flatten()
+            .map(|(n,)| n)
+    } else {
+        None
+    };
+
+    let pipeline_name: Option<String> = if let Some(pid) = lead.lead_pipeline_id {
+        guard
+            .fetch_optional(sqlx::query_as::<_, (String,)>(
+                "SELECT name FROM lead_pipelines WHERE id = $1",
+            ).bind(pid))
+            .await
+            .ok()
+            .flatten()
+            .map(|(n,)| n)
+    } else {
+        None
+    };
+
+    // Pipeline stages for the stage bar
+    let stages = if let Some(pid) = lead.lead_pipeline_id {
+        guard
+            .fetch_all(sqlx::query_as::<_, PipelineStageDetail>(
+                "SELECT lps.*, s.code AS stage_code, s.name AS stage_name
+                 FROM lead_pipeline_stages lps
+                 JOIN lead_stages s ON s.id = lps.lead_stage_id
+                 WHERE lps.lead_pipeline_id = $1
+                 ORDER BY lps.sort_order",
+            ).bind(pid))
+            .await
+            .unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    // Related activities
+    let activities = guard
+        .fetch_all(sqlx::query_as::<_, crate::models::activity::Activity>(
+            "SELECT a.* FROM activities a
+             JOIN lead_activities la ON la.activity_id = a.id
+             WHERE la.lead_id = $1
+             ORDER BY a.created_at DESC",
+        ).bind(id))
+        .await
+        .unwrap_or_default();
+
+    // Tags
+    let tags = guard
+        .fetch_all(sqlx::query_as::<_, crate::models::tag::Tag>(
+            "SELECT t.* FROM tags t
+             JOIN lead_tags lt ON lt.tag_id = t.id
+             WHERE lt.lead_id = $1
+             ORDER BY t.name",
+        ).bind(id))
+        .await
+        .unwrap_or_default();
+
+    // Lead products
+    let products = guard
+        .fetch_all(sqlx::query_as::<_, crate::models::lead::LeadProductRow>(
+            "SELECT lp.id, lp.lead_id, lp.product_id, lp.quantity, lp.price, lp.amount,
+                    p.name AS product_name, p.sku AS product_sku
+             FROM lead_products lp
+             JOIN products p ON p.id = lp.product_id
+             WHERE lp.lead_id = $1
+             ORDER BY lp.id",
+        ).bind(id))
+        .await
+        .unwrap_or_default();
+
+    // Lead quotes
+    let quotes = guard
+        .fetch_all(sqlx::query_as::<_, crate::models::quote::Quote>(
+            "SELECT q.* FROM quotes q
+             JOIN lead_quotes lq ON lq.quote_id = q.id
+             WHERE lq.lead_id = $1
+             ORDER BY q.id DESC",
+        ).bind(id))
+        .await
+        .unwrap_or_default();
+
+    let _ = guard.release().await;
+
+    let initial_data = serde_json::json!({
+        "lead": lead,
+        "person": person,
+        "user_name": user_name,
+        "source_name": source_name,
+        "type_name": type_name,
+        "pipeline_name": pipeline_name,
+        "stages": stages,
+        "activities": activities,
+        "tags": tags,
+        "products": products,
+        "quotes": quotes,
+        "admin_name": user.full_name(),
+        "company_name": company.name,
+        "permission_type": user.permission_type,
+        "permissions": user.role_permissions,
+    });
+    LeadShow::new(csrf_token, initial_data.to_string()).into_response()
 }
 
 pub async fn kanban_page(

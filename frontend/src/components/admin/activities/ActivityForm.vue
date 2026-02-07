@@ -1,6 +1,5 @@
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbs" class="px-0 pt-0" />
     <h1 class="text-h5 mb-4">{{ isEdit ? "Edit Activity" : "Create Activity" }}</h1>
 
     <v-card max-width="700">
@@ -46,11 +45,82 @@
             />
           </div>
 
+          <!-- Participant Users -->
+          <v-select
+            v-model="form.participant_user_ids"
+            :items="userOptions"
+            item-title="label"
+            item-value="value"
+            label="Participant Users"
+            multiple
+            chips
+            closable-chips
+            class="mb-3"
+          />
+
+          <!-- Participant Persons (search) -->
+          <v-combobox
+            v-model="selectedPersons"
+            :items="personSearchResults"
+            item-title="label"
+            item-value="value"
+            label="Participant Persons"
+            multiple
+            chips
+            closable-chips
+            class="mb-3"
+            return-object
+            :loading="personSearching"
+            @update:search="onPersonSearch"
+            no-filter
+            hide-no-data
+          />
+
           <v-checkbox
             v-model="form.is_done"
             label="Mark as done"
             class="mb-3"
           />
+
+          <!-- File Attachments (edit mode) -->
+          <template v-if="isEdit">
+            <div class="text-subtitle-2 mb-2">Attachments</div>
+            <div v-if="files.length" class="mb-3">
+              <v-chip
+                v-for="f in files"
+                :key="f.id"
+                class="mr-2 mb-1"
+                closable
+                @click:close="removeFile(f.id)"
+                @click="downloadFile(f)"
+              >
+                <v-icon start size="small">mdi-file</v-icon>
+                {{ f.file_name }}
+                <span class="text-caption ml-1 text-medium-emphasis">({{ formatSize(f.file_size) }})</span>
+              </v-chip>
+            </div>
+            <div v-else class="text-caption text-medium-emphasis mb-3">No files attached.</div>
+            <v-file-input
+              v-model="newFiles"
+              label="Upload Files"
+              multiple
+              prepend-icon="mdi-paperclip"
+              show-size
+              class="mb-3"
+              :loading="uploading"
+            />
+            <v-btn
+              v-if="newFiles && newFiles.length"
+              variant="tonal"
+              size="small"
+              color="primary"
+              :loading="uploading"
+              class="mb-3"
+              @click="uploadFiles"
+            >
+              Upload {{ newFiles.length }} file{{ newFiles.length === 1 ? '' : 's' }}
+            </v-btn>
+          </template>
         </v-form>
       </v-card-text>
       <v-card-actions class="px-4 pb-4">
@@ -71,17 +141,30 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
 import { useActivitiesStore } from "@/stores/admin/activities";
+import { get } from "@/api/client";
 
 const data = window.__INITIAL_DATA__ || {};
 const store = useActivitiesStore();
 const isEdit = computed(() => !!data.activity);
 
-const breadcrumbs = computed(() => [
-  { title: "Activities", href: "/admin/activities" },
-  { title: isEdit.value ? "Edit" : "Create", disabled: true },
-]);
-
 const activityTypes = ["call", "meeting", "note", "task"];
+
+// User options for participant select
+const userOptions = computed(() =>
+  (data.users || []).map((u: any) => ({
+    label: `${u.first_name} ${u.last_name}`,
+    value: u.id,
+  })),
+);
+
+// Existing participants
+const existingParticipants = data.participants || [];
+const existingUserIds = existingParticipants
+  .filter((p: any) => p.user_id != null)
+  .map((p: any) => p.user_id);
+const existingPersons = existingParticipants
+  .filter((p: any) => p.person_id != null)
+  .map((p: any) => ({ label: p.person_name || `Person #${p.person_id}`, value: p.person_id }));
 
 function toLocalDatetime(isoString: string | null): string {
   if (!isoString) return "";
@@ -100,7 +183,101 @@ const form = reactive({
   schedule_from: toLocalDatetime(activity?.schedule_from),
   schedule_to: toLocalDatetime(activity?.schedule_to),
   is_done: activity?.is_done || false,
+  participant_user_ids: existingUserIds as number[],
 });
+
+const selectedPersons = ref<Array<{ label: string; value: number }>>(existingPersons);
+
+// Person search
+const personSearchResults = ref<Array<{ label: string; value: number }>>([]);
+const personSearching = ref(false);
+let personSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+function onPersonSearch(val: string) {
+  if (personSearchTimer) clearTimeout(personSearchTimer);
+  if (!val || val.length < 2) {
+    personSearchResults.value = [];
+    return;
+  }
+  personSearchTimer = setTimeout(async () => {
+    personSearching.value = true;
+    try {
+      const res = await get<{ data: Array<{ id: number; name: string }> }>(
+        `/admin/api/contacts/persons/search?q=${encodeURIComponent(val)}`,
+      );
+      personSearchResults.value = res.data.map((p) => ({ label: p.name, value: p.id }));
+    } catch {
+      personSearchResults.value = [];
+    } finally {
+      personSearching.value = false;
+    }
+  }, 300);
+}
+
+// File attachments
+interface ActivityFileInfo {
+  id: number;
+  file_name: string;
+  file_size: number;
+}
+const files = ref<ActivityFileInfo[]>(data.files || []);
+const newFiles = ref<File[]>([]);
+const uploading = ref(false);
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
+function downloadFile(f: ActivityFileInfo) {
+  window.open(`/admin/api/activities/${activity.id}/files/${f.id}`, "_blank");
+}
+
+async function removeFile(fileId: number) {
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  const csrfToken = meta?.getAttribute("content") ?? "";
+  try {
+    await fetch(`/admin/api/activities/${activity.id}/files/${fileId}`, {
+      method: "DELETE",
+      headers: { "X-CSRF-Token": csrfToken },
+      credentials: "same-origin",
+    });
+    files.value = files.value.filter((f) => f.id !== fileId);
+  } catch {
+    errorMessage.value = "Failed to delete file.";
+    errorSnackbar.value = true;
+  }
+}
+
+async function uploadFiles() {
+  if (!newFiles.value?.length) return;
+  uploading.value = true;
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  const csrfToken = meta?.getAttribute("content") ?? "";
+  const formData = new FormData();
+  for (const f of newFiles.value) {
+    formData.append("file", f);
+  }
+  try {
+    const resp = await fetch(`/admin/api/activities/${activity.id}/files`, {
+      method: "POST",
+      headers: { "X-CSRF-Token": csrfToken },
+      credentials: "same-origin",
+      body: formData,
+    });
+    const json = await resp.json();
+    if (json.data) {
+      files.value.push(...json.data);
+    }
+    newFiles.value = [];
+  } catch {
+    errorMessage.value = "Failed to upload files.";
+    errorSnackbar.value = true;
+  } finally {
+    uploading.value = false;
+  }
+}
 
 const rules = {
   required: (v: any) => !!v || "Required",
@@ -125,6 +302,8 @@ async function submit() {
       schedule_from: form.schedule_from ? new Date(form.schedule_from).toISOString() : null,
       schedule_to: form.schedule_to ? new Date(form.schedule_to).toISOString() : null,
       is_done: form.is_done,
+      participant_user_ids: form.participant_user_ids,
+      participant_person_ids: selectedPersons.value.map((p) => p.value),
     };
 
     if (isEdit.value) {

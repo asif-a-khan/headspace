@@ -3,14 +3,18 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde::Deserialize;
+use validator::Validate;
 
+use crate::auth::bouncer::{bouncer, validate_payload};
 use crate::db::guard::TenantGuard;
 use crate::db::Database;
 use crate::models::company::Company;
 use crate::models::pipeline::{LeadPipeline, LeadStage, PipelineStageDetail, PipelineWithStages};
+use crate::models::tenant_admin::TenantUser;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct PipelinePayload {
+    #[validate(length(min = 1, message = "Name is required."))]
     pub name: String,
     pub is_default: Option<bool>,
     pub rotten_days: Option<i32>,
@@ -27,7 +31,10 @@ pub struct StagePayload {
 pub async fn list(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.pipelines") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -58,8 +65,12 @@ pub async fn list(
 pub async fn store(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Json(payload): Json<PipelinePayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.pipelines.create") { return resp; }
+    if let Err(resp) = validate_payload(&payload) { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -119,8 +130,11 @@ pub async fn store(
 pub async fn show(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.pipelines.edit") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -164,9 +178,13 @@ pub async fn show(
 pub async fn update(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
     Json(payload): Json<PipelinePayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.pipelines.edit") { return resp; }
+    if let Err(resp) = validate_payload(&payload) { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -195,25 +213,90 @@ pub async fn update(
 
     match result {
         Ok(Some(pipeline)) => {
-            // Replace pipeline stages
+            // Sync pipeline stages (preserving IDs for leads)
             if let Some(stages) = &payload.stages {
-                let _ = guard
-                    .execute(sqlx::query("DELETE FROM lead_pipeline_stages WHERE lead_pipeline_id = $1").bind(pipeline.id))
-                    .await;
+                // Get existing pipeline_stages for this pipeline
+                let existing = guard
+                    .fetch_all(sqlx::query_as::<_, (i64, i64)>(
+                        "SELECT id, lead_stage_id FROM lead_pipeline_stages WHERE lead_pipeline_id = $1",
+                    ).bind(pipeline.id))
+                    .await
+                    .unwrap_or_default();
 
+                let new_stage_ids: std::collections::HashSet<i64> =
+                    stages.iter().map(|s| s.lead_stage_id).collect();
+
+                // Update existing stages that are kept, insert new ones
                 for (i, s) in stages.iter().enumerate() {
-                    let _ = guard
-                        .execute(
-                            sqlx::query(
-                                "INSERT INTO lead_pipeline_stages (lead_pipeline_id, lead_stage_id, probability, sort_order)
-                                 VALUES ($1, $2, $3, $4)",
+                    let existing_ps = existing.iter().find(|(_, lsid)| *lsid == s.lead_stage_id);
+                    if let Some((ps_id, _)) = existing_ps {
+                        // Update existing pipeline_stage
+                        let _ = guard
+                            .execute(
+                                sqlx::query(
+                                    "UPDATE lead_pipeline_stages SET probability = $1, sort_order = $2 WHERE id = $3",
+                                )
+                                .bind(s.probability.unwrap_or(100))
+                                .bind(s.sort_order.unwrap_or(i as i32))
+                                .bind(ps_id),
                             )
-                            .bind(pipeline.id)
-                            .bind(s.lead_stage_id)
-                            .bind(s.probability.unwrap_or(100))
-                            .bind(s.sort_order.unwrap_or(i as i32)),
+                            .await;
+                    } else {
+                        // Insert new pipeline_stage
+                        let _ = guard
+                            .execute(
+                                sqlx::query(
+                                    "INSERT INTO lead_pipeline_stages (lead_pipeline_id, lead_stage_id, probability, sort_order)
+                                     VALUES ($1, $2, $3, $4)",
+                                )
+                                .bind(pipeline.id)
+                                .bind(s.lead_stage_id)
+                                .bind(s.probability.unwrap_or(100))
+                                .bind(s.sort_order.unwrap_or(i as i32)),
+                            )
+                            .await;
+                    }
+                }
+
+                // Remove stages no longer in payload, migrating leads first
+                let removed: Vec<i64> = existing
+                    .iter()
+                    .filter(|(_, lsid)| !new_stage_ids.contains(lsid))
+                    .map(|(ps_id, _)| *ps_id)
+                    .collect();
+
+                if !removed.is_empty() {
+                    // Find first remaining stage to reassign orphaned leads
+                    let first_remaining = guard
+                        .fetch_optional(sqlx::query_as::<_, (i64,)>(
+                            "SELECT id FROM lead_pipeline_stages
+                             WHERE lead_pipeline_id = $1 AND id != ALL($2)
+                             ORDER BY sort_order LIMIT 1",
                         )
-                        .await;
+                        .bind(pipeline.id)
+                        .bind(&removed))
+                        .await
+                        .ok()
+                        .flatten()
+                        .map(|(id,)| id);
+
+                    for ps_id in &removed {
+                        if let Some(target_id) = first_remaining {
+                            // Reassign leads from removed stage to first remaining stage
+                            let _ = guard
+                                .execute(
+                                    sqlx::query(
+                                        "UPDATE leads SET lead_pipeline_stage_id = $1 WHERE lead_pipeline_stage_id = $2",
+                                    )
+                                    .bind(target_id)
+                                    .bind(ps_id),
+                                )
+                                .await;
+                        }
+                        let _ = guard
+                            .execute(sqlx::query("DELETE FROM lead_pipeline_stages WHERE id = $1").bind(ps_id))
+                            .await;
+                    }
                 }
             }
 
@@ -235,8 +318,11 @@ pub async fn update(
 pub async fn destroy(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.pipelines.delete") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -244,6 +330,38 @@ pub async fn destroy(
             return internal_error();
         }
     };
+
+    // Check if this is the default pipeline
+    let is_default = guard
+        .fetch_optional(sqlx::query_as::<_, (bool,)>(
+            "SELECT is_default FROM lead_pipelines WHERE id = $1",
+        ).bind(id))
+        .await;
+
+    if let Ok(Some((true,))) = is_default {
+        let _ = guard.release().await;
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::json!({ "error": "Cannot delete the default pipeline." })),
+        ).into_response();
+    }
+
+    // Check if any leads use this pipeline
+    let lead_count = guard
+        .fetch_one(sqlx::query_as::<_, (i64,)>(
+            "SELECT COUNT(*) FROM leads WHERE lead_pipeline_id = $1",
+        ).bind(id))
+        .await;
+
+    if let Ok((c,)) = lead_count {
+        if c > 0 {
+            let _ = guard.release().await;
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "Cannot delete a pipeline that has leads assigned." })),
+            ).into_response();
+        }
+    }
 
     let result = guard.execute(sqlx::query("DELETE FROM lead_pipelines WHERE id = $1").bind(id)).await;
     let _ = guard.release().await;

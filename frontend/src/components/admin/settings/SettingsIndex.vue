@@ -79,6 +79,17 @@
           </v-card-item>
         </v-card>
       </v-col>
+      <v-col cols="12" md="4">
+        <v-card hover href="/admin/settings/configuration">
+          <v-card-item>
+            <template #prepend>
+              <v-icon icon="mdi-cog" size="40" color="primary" />
+            </template>
+            <v-card-title>Configuration</v-card-title>
+            <v-card-subtitle>Currency, date format, appearance</v-card-subtitle>
+          </v-card-item>
+        </v-card>
+      </v-col>
     </v-row>
   </div>
 </template>

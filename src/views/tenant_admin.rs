@@ -433,6 +433,24 @@ impl PersonEdit {
     }
 }
 
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/contacts/persons/show.html")]
+pub struct PersonShow {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl PersonShow {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-person-detail", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
 // -- Organizations --
 
 #[derive(Template, WebTemplate)]
@@ -559,6 +577,24 @@ impl LeadKanbanView {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("admin-lead-kanban", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/leads/show.html")]
+pub struct LeadShow {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl LeadShow {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-lead-detail", csrf_token, initial_data);
         Self { csrf_token, page, initial_data, js_file, css_file }
     }
 }
@@ -727,6 +763,66 @@ impl QuoteEdit {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("admin-quote-form", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Account --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/account.html")]
+pub struct AccountEdit {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl AccountEdit {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-account", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Configuration --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/settings/configuration/index.html")]
+pub struct ConfigurationIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl ConfigurationIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-configuration", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
+// -- Email --
+
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/mail/index.html")]
+pub struct EmailIndex {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl EmailIndex {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-email", csrf_token, initial_data);
         Self { csrf_token, page, initial_data, js_file, css_file }
     }
 }

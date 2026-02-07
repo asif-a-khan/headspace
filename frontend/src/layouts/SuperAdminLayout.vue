@@ -117,6 +117,16 @@
         >
           {{ flash }}
         </v-alert>
+        <v-breadcrumbs
+          v-if="breadcrumbs.length > 1"
+          :items="breadcrumbs"
+          density="compact"
+          class="px-0 pt-0 pb-3 text-body-2"
+        >
+          <template #divider>
+            <v-icon size="x-small">mdi-chevron-right</v-icon>
+          </template>
+        </v-breadcrumbs>
         <slot />
       </v-container>
     </v-main>
@@ -136,6 +146,40 @@ const currentPath = window.location.pathname;
 const sidebarExpanded = ref(true);
 
 const isDark = computed(() => theme.global.current.value.dark);
+
+// --- Breadcrumbs ---
+const superLabelMap: Record<string, string> = {
+  super: "",
+  tenants: "Tenants",
+  settings: "Settings",
+  agents: "Agents",
+  roles: "Roles",
+  account: "My Account",
+  create: "Create",
+  edit: "Edit",
+};
+
+const breadcrumbs = computed(() => {
+  const parts = currentPath.replace(/\/$/, "").split("/").filter(Boolean);
+  const crumbs: Array<{ title: string; href?: string; disabled?: boolean }> = [
+    { title: "Home", href: "/super/tenants" },
+  ];
+  let path = "";
+  for (let i = 0; i < parts.length; i++) {
+    const segment = parts[i];
+    path += "/" + segment;
+    if (segment === "super") continue;
+    if (/^\d+$/.test(segment)) continue;
+    const label = superLabelMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
+    const isLast = i === parts.length - 1;
+    crumbs.push({
+      title: label,
+      href: isLast ? undefined : path,
+      disabled: isLast,
+    });
+  }
+  return crumbs;
+});
 
 const isSettingsActive = computed(() => currentPath.startsWith("/super/settings"));
 

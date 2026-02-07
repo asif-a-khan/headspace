@@ -9,9 +9,10 @@ use crate::middleware::csrf::get_csrf_token;
 use crate::models::company::Company;
 use crate::models::group::Group;
 use crate::models::tenant_admin::{TenantRole, TenantUser};
+use crate::api::tenant_admin::config::load_tenant_config;
 use crate::views::tenant_admin::{
-    GroupCreate, GroupEdit, GroupIndex, RoleCreate, RoleEdit, RoleIndex, SettingsIndex, UserCreate,
-    UserEdit, UserIndex,
+    ConfigurationIndex, GroupCreate, GroupEdit, GroupIndex, RoleCreate, RoleEdit, RoleIndex,
+    SettingsIndex, UserCreate, UserEdit, UserIndex,
 };
 
 pub async fn index(
@@ -344,4 +345,34 @@ pub async fn groups_edit(
         "company_name": company.name,
     });
     GroupEdit::new(csrf_token, initial_data.to_string()).into_response()
+}
+
+// -- Configuration --
+
+pub async fn configuration_index(
+    session: Session,
+    Extension(db): Extension<Database>,
+    Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
+) -> Response {
+    let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
+
+    let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
+        Ok(g) => g,
+        Err(_) => {
+            return ConfigurationIndex::new(csrf_token, "{}".to_string()).into_response();
+        }
+    };
+
+    let config = load_tenant_config(&mut guard).await;
+    let _ = guard.release().await;
+
+    let initial_data = serde_json::json!({
+        "config": config,
+        "admin_name": user.full_name(),
+        "company_name": company.name,
+        "permission_type": user.permission_type,
+        "permissions": user.role_permissions,
+    });
+    ConfigurationIndex::new(csrf_token, initial_data.to_string()).into_response()
 }

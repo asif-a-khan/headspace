@@ -4,6 +4,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde::Deserialize;
 
+use crate::auth::bouncer::bouncer;
 use crate::db::guard::TenantGuard;
 use crate::db::Database;
 use crate::models::company::Company;
@@ -26,7 +27,10 @@ pub struct AttachPayload {
 pub async fn list(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "tags") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -56,6 +60,8 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<TagPayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "tags.create") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -99,8 +105,11 @@ pub async fn store(
 pub async fn show(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "tags.edit") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -132,9 +141,12 @@ pub async fn show(
 pub async fn update(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
     Json(payload): Json<TagPayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "tags.edit") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -177,8 +189,11 @@ pub async fn update(
 pub async fn destroy(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "tags.delete") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -216,8 +231,11 @@ pub async fn destroy(
 pub async fn attach(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Json(payload): Json<AttachPayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "tags.edit") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -267,8 +285,11 @@ pub async fn attach(
 pub async fn detach(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Json(payload): Json<AttachPayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "tags.edit") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {

@@ -3,7 +3,9 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde::Deserialize;
+use validator::Validate;
 
+use crate::auth::bouncer::{bouncer, validate_payload};
 use crate::db::guard::TenantGuard;
 use crate::db::Database;
 use crate::models::company::Company;
@@ -12,8 +14,9 @@ use crate::models::tenant_admin::TenantUser;
 
 use super::contacts::view_permission_filter;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct OrganizationPayload {
+    #[validate(length(min = 1, message = "Name is required."))]
     pub name: String,
     pub address: Option<serde_json::Value>,
     pub user_id: Option<i64>,
@@ -24,6 +27,8 @@ pub async fn list(
     Extension(company): Extension<Company>,
     Extension(user): Extension<TenantUser>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "contacts.organizations") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -62,6 +67,9 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<OrganizationPayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "contacts.organizations.create") { return resp; }
+    if let Err(resp) = validate_payload(&payload) { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -95,8 +103,11 @@ pub async fn store(
 pub async fn show(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "contacts.organizations.edit") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -105,8 +116,11 @@ pub async fn show(
         }
     };
 
+    let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let org = guard
-        .fetch_optional(sqlx::query_as::<_, Organization>("SELECT * FROM organizations WHERE id = $1").bind(id))
+        .fetch_optional(sqlx::query_as::<_, Organization>(&format!(
+            "SELECT * FROM organizations WHERE id = $1{vp}"
+        )).bind(id))
         .await;
 
     let _ = guard.release().await;
@@ -124,9 +138,13 @@ pub async fn show(
 pub async fn update(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
     Json(payload): Json<OrganizationPayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "contacts.organizations.edit") { return resp; }
+    if let Err(resp) = validate_payload(&payload) { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -135,11 +153,12 @@ pub async fn update(
         }
     };
 
+    let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let result = guard
-        .fetch_optional(sqlx::query_as::<_, Organization>(
+        .fetch_optional(sqlx::query_as::<_, Organization>(&format!(
             "UPDATE organizations SET name = $1, address = $2, user_id = $3, updated_at = NOW()
-             WHERE id = $4 RETURNING *",
-        )
+             WHERE id = $4{vp} RETURNING *"
+        ))
         .bind(&payload.name)
         .bind(&payload.address)
         .bind(&payload.user_id)
@@ -161,8 +180,11 @@ pub async fn update(
 pub async fn destroy(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "contacts.organizations.delete") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -171,7 +193,8 @@ pub async fn destroy(
         }
     };
 
-    let result = guard.execute(sqlx::query("DELETE FROM organizations WHERE id = $1").bind(id)).await;
+    let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
+    let result = guard.execute(sqlx::query(&format!("DELETE FROM organizations WHERE id = $1{vp}")).bind(id)).await;
     let _ = guard.release().await;
 
     match result {
@@ -180,6 +203,51 @@ pub async fn destroy(
         Err(e) => {
             tracing::error!("Failed to delete organization: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed to delete organization." }))).into_response()
+        }
+    }
+}
+
+// --- Mass Delete ---
+
+#[derive(Deserialize)]
+pub struct MassDeletePayload {
+    pub ids: Vec<i64>,
+}
+
+pub async fn mass_delete(
+    Extension(db): Extension<Database>,
+    Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
+    Json(payload): Json<MassDeletePayload>,
+) -> Response {
+    if let Err(resp) = bouncer(&user, "contacts.organizations.delete") { return resp; }
+    if payload.ids.is_empty() {
+        return Json(serde_json::json!({ "message": "No organizations selected.", "deleted_count": 0 })).into_response();
+    }
+
+    let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
+        Ok(g) => g,
+        Err(e) => {
+            tracing::error!("Failed to acquire tenant connection: {e}");
+            return internal_error();
+        }
+    };
+
+    let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
+    let result = guard
+        .execute(sqlx::query(&format!("DELETE FROM organizations WHERE id = ANY($1::bigint[]){vp}")).bind(&payload.ids))
+        .await;
+
+    let _ = guard.release().await;
+
+    match result {
+        Ok(r) => {
+            let count = r.rows_affected();
+            Json(serde_json::json!({ "message": format!("{count} organization(s) deleted."), "deleted_count": count })).into_response()
+        }
+        Err(e) => {
+            tracing::error!("Failed to mass delete organizations: {e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed to delete organizations." }))).into_response()
         }
     }
 }

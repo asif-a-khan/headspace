@@ -138,7 +138,10 @@ pub static TENANT_ADMIN_ACL: &[AclItem] = &[
     AclItem {
         key: "mail",
         name: "Mail",
-        children: &[],
+        children: &[
+            AclItem { key: "mail.compose", name: "Compose", children: &[] },
+            AclItem { key: "mail.delete", name: "Delete", children: &[] },
+        ],
     },
     AclItem {
         key: "activities",

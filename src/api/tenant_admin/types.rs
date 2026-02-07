@@ -3,21 +3,28 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde::Deserialize;
+use validator::Validate;
 
+use crate::auth::bouncer::{bouncer, validate_payload};
 use crate::db::guard::TenantGuard;
 use crate::db::Database;
 use crate::models::company::Company;
 use crate::models::pipeline::LeadType;
+use crate::models::tenant_admin::TenantUser;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct TypePayload {
+    #[validate(length(min = 1, message = "Name is required."))]
     pub name: String,
 }
 
 pub async fn list(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.types") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -44,8 +51,12 @@ pub async fn list(
 pub async fn store(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Json(payload): Json<TypePayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.types.create") { return resp; }
+    if let Err(resp) = validate_payload(&payload) { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -74,8 +85,11 @@ pub async fn store(
 pub async fn show(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.types.edit") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -103,9 +117,13 @@ pub async fn show(
 pub async fn update(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
     Json(payload): Json<TypePayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.types.edit") { return resp; }
+    if let Err(resp) = validate_payload(&payload) { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -135,8 +153,11 @@ pub async fn update(
 pub async fn destroy(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.types.delete") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {

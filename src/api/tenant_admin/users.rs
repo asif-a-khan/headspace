@@ -4,17 +4,24 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde::Deserialize;
 
+use validator::Validate;
+
+use crate::auth::bouncer::{bouncer, validate_payload};
 use crate::auth::password::hash_password;
 use crate::db::guard::TenantGuard;
 use crate::db::Database;
 use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct UserCreatePayload {
+    #[validate(length(min = 1, message = "First name is required."))]
     pub first_name: String,
+    #[validate(length(min = 1, message = "Last name is required."))]
     pub last_name: String,
+    #[validate(email(message = "Invalid email address."))]
     pub email: String,
+    #[validate(length(min = 6, message = "Password must be at least 6 characters."))]
     pub password: String,
     pub role_id: i64,
     pub view_permission: Option<String>,
@@ -22,10 +29,13 @@ pub struct UserCreatePayload {
     pub group_ids: Option<Vec<i64>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct UserUpdatePayload {
+    #[validate(length(min = 1, message = "First name is required."))]
     pub first_name: String,
+    #[validate(length(min = 1, message = "Last name is required."))]
     pub last_name: String,
+    #[validate(email(message = "Invalid email address."))]
     pub email: String,
     pub password: Option<String>,
     pub role_id: i64,
@@ -37,7 +47,10 @@ pub struct UserUpdatePayload {
 pub async fn list(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.users") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -69,8 +82,12 @@ pub async fn list(
 pub async fn store(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Json(payload): Json<UserCreatePayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.users.create") { return resp; }
+    if let Err(resp) = validate_payload(&payload) { return resp; }
+
     let password_hash = match hash_password(&payload.password) {
         Ok(h) => h,
         Err(e) => {
@@ -104,8 +121,8 @@ pub async fn store(
         .bind(payload.status.unwrap_or(true)))
         .await;
 
-    let user = match result {
-        Ok(user) => user,
+    let new_user = match result {
+        Ok(u) => u,
         Err(e) => {
             let _ = guard.release().await;
             tracing::error!("Failed to create user: {e}");
@@ -124,14 +141,14 @@ pub async fn store(
 
     // Sync group memberships
     if let Some(ref group_ids) = payload.group_ids {
-        sync_user_groups(&mut guard, user.id, group_ids).await;
+        sync_user_groups(&mut guard, new_user.id, group_ids).await;
     }
 
     let _ = guard.release().await;
 
     (
         StatusCode::CREATED,
-        Json(serde_json::json!({ "data": user, "message": "User created successfully." })),
+        Json(serde_json::json!({ "data": new_user, "message": "User created successfully." })),
     )
         .into_response()
 }
@@ -139,8 +156,11 @@ pub async fn store(
 pub async fn show(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.users.edit") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -149,7 +169,7 @@ pub async fn show(
         }
     };
 
-    let user = guard
+    let target = guard
         .fetch_optional(sqlx::query_as::<_, TenantUser>(
             "SELECT u.*, r.permission_type, r.permissions AS role_permissions
              FROM users u
@@ -169,7 +189,7 @@ pub async fn show(
 
     let _ = guard.release().await;
 
-    match user {
+    match target {
         Ok(Some(u)) => {
             let gids: Vec<i64> = group_ids
                 .unwrap_or_default()
@@ -193,9 +213,13 @@ pub async fn show(
 pub async fn update(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
     Json(payload): Json<UserUpdatePayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.users.edit") { return resp; }
+    if let Err(resp) = validate_payload(&payload) { return resp; }
+
     let view_permission = payload.view_permission.as_deref().unwrap_or("global");
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
@@ -243,12 +267,12 @@ pub async fn update(
     };
 
     match result {
-        Ok(Some(user)) => {
+        Ok(Some(updated)) => {
             if let Some(ref group_ids) = payload.group_ids {
-                sync_user_groups(&mut guard, user.id, group_ids).await;
+                sync_user_groups(&mut guard, updated.id, group_ids).await;
             }
             let _ = guard.release().await;
-            Json(serde_json::json!({ "data": user, "message": "User updated successfully." }))
+            Json(serde_json::json!({ "data": updated, "message": "User updated successfully." }))
                 .into_response()
         }
         Ok(None) => {
@@ -306,6 +330,8 @@ pub async fn destroy(
     Extension(current_user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&current_user, "settings.users.delete") { return resp; }
+
     if current_user.id == id {
         return (
             StatusCode::UNPROCESSABLE_ENTITY,

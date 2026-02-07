@@ -3,16 +3,20 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde::Deserialize;
+use validator::Validate;
 
+use crate::auth::bouncer::{bouncer, validate_payload};
 use crate::db::guard::TenantGuard;
 use crate::db::Database;
 use crate::models::company::Company;
-use crate::models::tenant_admin::TenantRole;
+use crate::models::tenant_admin::{TenantRole, TenantUser};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct RolePayload {
+    #[validate(length(min = 1, message = "Name is required."))]
     pub name: String,
     pub description: Option<String>,
+    #[validate(length(min = 1, message = "Permission type is required."))]
     pub permission_type: String,
     pub permissions: serde_json::Value,
 }
@@ -20,7 +24,10 @@ pub struct RolePayload {
 pub async fn list(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.roles") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -49,8 +56,12 @@ pub async fn list(
 pub async fn store(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Json(payload): Json<RolePayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.roles.create") { return resp; }
+    if let Err(resp) = validate_payload(&payload) { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -93,8 +104,11 @@ pub async fn store(
 pub async fn show(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.roles.edit") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -129,9 +143,13 @@ pub async fn show(
 pub async fn update(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
     Json(payload): Json<RolePayload>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.roles.edit") { return resp; }
+    if let Err(resp) = validate_payload(&payload) { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -180,8 +198,11 @@ pub async fn update(
 pub async fn destroy(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
+    if let Err(resp) = bouncer(&user, "settings.roles.delete") { return resp; }
+
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
         Err(e) => {
@@ -189,6 +210,32 @@ pub async fn destroy(
             return internal_error();
         }
     };
+
+    // Cannot delete your own role
+    if user.role_id == id {
+        let _ = guard.release().await;
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::json!({ "error": "Cannot delete your own role." })),
+        )
+            .into_response();
+    }
+
+    // Cannot delete the last role
+    let role_count = guard
+        .fetch_one(sqlx::query_as::<_, (i64,)>("SELECT COUNT(*) FROM roles"))
+        .await;
+
+    if let Ok((c,)) = role_count {
+        if c <= 1 {
+            let _ = guard.release().await;
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "Cannot delete the last role." })),
+            )
+                .into_response();
+        }
+    }
 
     // Check if any users are assigned to this role
     let user_count = guard

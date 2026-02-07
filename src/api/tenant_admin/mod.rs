@@ -1,8 +1,12 @@
+pub mod account;
 pub mod activities;
 pub mod attributes;
 pub mod auth;
+pub mod config;
 pub mod contacts;
 pub mod dashboard;
+pub mod data_transfer;
+pub mod emails;
 pub mod groups;
 pub mod leads;
 pub mod organizations;
@@ -14,4 +18,5 @@ pub mod roles;
 pub mod sources;
 pub mod tags;
 pub mod types;
+pub mod search;
 pub mod users;

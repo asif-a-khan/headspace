@@ -8,17 +8,21 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.5",
-    "vuetify": "^3.7",
+    "@mdi/font": "^7.4",
+    "chart.js": "^4.5.1",
     "pinia": "^3.0",
-    "@mdi/font": "^7.4"
+    "sortablejs": "^1.15.6",
+    "vue": "^3.5",
+    "vue-chartjs": "^5.3.3",
+    "vuedraggable": "^4.1.0",
+    "vuetify": "^3.7"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2",
+    "@vue/tsconfig": "^0.7",
+    "typescript": "^5.8",
     "vite": "^6.3",
     "vite-plugin-vuetify": "^2.1",
-    "typescript": "^5.8",
-    "vue-tsc": "^2.2",
-    "@vue/tsconfig": "^0.7"
+    "vue-tsc": "^2.2"
   }
 }
