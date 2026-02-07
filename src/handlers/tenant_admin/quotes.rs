@@ -56,6 +56,7 @@ pub async fn create(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
     Extension(user): Extension<TenantUser>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Response {
     let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
 
@@ -87,6 +88,26 @@ pub async fn create(
         .await
         .unwrap_or_default();
 
+    // If lead_id is provided, pre-populate person/user from the lead
+    let lead_id: Option<i64> = params.get("lead_id").and_then(|s| s.parse().ok());
+    let mut pre_person_id: Option<i64> = None;
+    let mut pre_user_id: Option<i64> = None;
+
+    if let Some(lid) = lead_id {
+        if let Ok(Some(row)) = guard
+            .fetch_optional(
+                sqlx::query_as::<_, (Option<i64>, Option<i64>)>(
+                    "SELECT person_id, user_id FROM leads WHERE id = $1",
+                )
+                .bind(lid),
+            )
+            .await
+        {
+            pre_person_id = row.0;
+            pre_user_id = row.1;
+        }
+    }
+
     let _ = guard.release().await;
 
     let initial_data = serde_json::json!({
@@ -95,6 +116,9 @@ pub async fn create(
         "users": users,
         "admin_name": user.full_name(),
         "company_name": company.name,
+        "lead_id": lead_id,
+        "pre_person_id": pre_person_id,
+        "pre_user_id": pre_user_id,
     });
     QuoteCreate::new(csrf_token, initial_data.to_string()).into_response()
 }

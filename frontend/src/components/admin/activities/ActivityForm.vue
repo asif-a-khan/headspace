@@ -76,6 +76,24 @@
             hide-no-data
           />
 
+          <!-- Associated Leads -->
+          <v-combobox
+            v-model="selectedLeads"
+            :items="leadSearchResults"
+            item-title="label"
+            item-value="value"
+            label="Associated Leads"
+            multiple
+            chips
+            closable-chips
+            class="mb-3"
+            return-object
+            :loading="leadSearching"
+            @update:search="onLeadSearch"
+            no-filter
+            hide-no-data
+          />
+
           <v-checkbox
             v-model="form.is_done"
             label="Mark as done"
@@ -187,6 +205,39 @@ const form = reactive({
 });
 
 const selectedPersons = ref<Array<{ label: string; value: number }>>(existingPersons);
+
+// Existing linked leads
+const existingLinkedLeads = (data.linked_leads || []).map((l: any) => ({
+  label: `#${l.id} - ${l.title}`,
+  value: l.id,
+}));
+const selectedLeads = ref<Array<{ label: string; value: number }>>(existingLinkedLeads);
+
+// Lead search
+const leadSearchResults = ref<Array<{ label: string; value: number }>>([]);
+const leadSearching = ref(false);
+let leadSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+function onLeadSearch(val: string) {
+  if (leadSearchTimer) clearTimeout(leadSearchTimer);
+  if (!val || val.length < 2) {
+    leadSearchResults.value = [];
+    return;
+  }
+  leadSearchTimer = setTimeout(async () => {
+    leadSearching.value = true;
+    try {
+      const res = await get<{ data: Array<{ id: number; title: string }> }>(
+        `/admin/api/leads/search?q=${encodeURIComponent(val)}`,
+      );
+      leadSearchResults.value = res.data.map((l) => ({ label: `#${l.id} - ${l.title}`, value: l.id }));
+    } catch {
+      leadSearchResults.value = [];
+    } finally {
+      leadSearching.value = false;
+    }
+  }, 300);
+}
 
 // Person search
 const personSearchResults = ref<Array<{ label: string; value: number }>>([]);
@@ -304,6 +355,7 @@ async function submit() {
       is_done: form.is_done,
       participant_user_ids: form.participant_user_ids,
       participant_person_ids: selectedPersons.value.map((p) => p.value),
+      lead_ids: selectedLeads.value.map((l) => l.value),
     };
 
     if (isEdit.value) {

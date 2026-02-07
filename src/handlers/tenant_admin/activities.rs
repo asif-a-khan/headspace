@@ -140,6 +140,17 @@ pub async fn edit(
         .await
         .unwrap_or_default();
 
+    // Fetch linked leads
+    let linked_leads = guard
+        .fetch_all(sqlx::query_as::<_, crate::models::lead::LeadSearchRow>(
+            "SELECT l.id, l.title FROM leads l
+             JOIN lead_activities la ON la.lead_id = l.id
+             WHERE la.activity_id = $1
+             ORDER BY l.id",
+        ).bind(id))
+        .await
+        .unwrap_or_default();
+
     let users = guard
         .fetch_all(sqlx::query_as::<_, TenantUser>(
             "SELECT * FROM users WHERE status = true ORDER BY first_name",
@@ -153,6 +164,7 @@ pub async fn edit(
         "activity": activity,
         "participants": participants,
         "files": files,
+        "linked_leads": linked_leads,
         "users": users,
         "admin_name": user.full_name(),
         "company_name": company.name,

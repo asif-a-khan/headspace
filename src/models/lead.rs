@@ -51,6 +51,13 @@ pub struct LeadRow {
     pub rotten_days: Option<i32>,
 }
 
+/// Lightweight lead search result.
+#[derive(Debug, Clone, sqlx::FromRow, Serialize)]
+pub struct LeadSearchRow {
+    pub id: i64,
+    pub title: String,
+}
+
 /// Lead product line item.
 #[derive(Debug, Clone, sqlx::FromRow, Serialize)]
 pub struct LeadProduct {

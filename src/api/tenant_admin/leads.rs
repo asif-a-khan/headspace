@@ -10,11 +10,18 @@ use crate::auth::bouncer::{bouncer, validate_payload};
 use crate::db::guard::TenantGuard;
 use crate::db::Database;
 use crate::models::company::Company;
-use crate::models::lead::{Lead, LeadKanbanCard, LeadProduct, LeadProductRow, LeadRow};
+use crate::models::lead::{Lead, LeadKanbanCard, LeadProduct, LeadProductRow, LeadRow, LeadSearchRow};
 use crate::models::tenant_admin::TenantUser;
 
 use crate::api::pagination::CountRow;
 use super::contacts::view_permission_filter;
+
+#[derive(Deserialize)]
+pub struct LeadProductInput {
+    pub product_id: i64,
+    pub quantity: i32,
+    pub price: Decimal,
+}
 
 #[derive(Deserialize, Validate)]
 pub struct LeadPayload {
@@ -29,6 +36,7 @@ pub struct LeadPayload {
     pub lead_pipeline_id: Option<i64>,
     pub lead_pipeline_stage_id: Option<i64>,
     pub user_id: Option<i64>,
+    pub products: Option<Vec<LeadProductInput>>,
 }
 
 #[derive(Deserialize)]
@@ -209,6 +217,43 @@ pub async fn kanban(
     }
 }
 
+pub async fn search(
+    Extension(db): Extension<Database>,
+    Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Response {
+    if let Err(resp) = bouncer(&user, "leads") { return resp; }
+
+    let q = params.get("q").map(|s| s.as_str()).unwrap_or("");
+    if q.len() < 2 {
+        return Json(serde_json::json!({ "data": [] })).into_response();
+    }
+
+    let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
+        Ok(g) => g,
+        Err(e) => {
+            tracing::error!("Failed to acquire tenant connection: {e}");
+            return internal_error();
+        }
+    };
+
+    let pattern = format!("%{q}%");
+    let results = guard
+        .fetch_all(
+            sqlx::query_as::<_, LeadSearchRow>(
+                "SELECT id, title FROM leads WHERE title ILIKE $1 ORDER BY id DESC LIMIT 10",
+            )
+            .bind(&pattern),
+        )
+        .await
+        .unwrap_or_default();
+
+    let _ = guard.release().await;
+
+    Json(serde_json::json!({ "data": results })).into_response()
+}
+
 pub async fn store(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
@@ -252,6 +297,26 @@ pub async fn store(
             .bind(assigned_user),
         )
         .await;
+
+    // Insert products if provided
+    if let Ok(ref lead) = result {
+        if let Some(ref products) = payload.products {
+            for p in products {
+                let amount = p.price * Decimal::from(p.quantity);
+                let _ = guard.execute(
+                    sqlx::query(
+                        "INSERT INTO lead_products (lead_id, product_id, quantity, price, amount)
+                         VALUES ($1, $2, $3, $4, $5)"
+                    )
+                    .bind(lead.id)
+                    .bind(p.product_id)
+                    .bind(p.quantity)
+                    .bind(p.price)
+                    .bind(amount),
+                ).await;
+            }
+        }
+    }
 
     let _ = guard.release().await;
 
@@ -358,6 +423,29 @@ pub async fn update(
             .bind(id),
         )
         .await;
+
+    // Sync products if provided (delete all + re-insert)
+    if let Ok(Some(_)) = &result {
+        if let Some(ref products) = payload.products {
+            let _ = guard.execute(
+                sqlx::query("DELETE FROM lead_products WHERE lead_id = $1").bind(id)
+            ).await;
+            for p in products {
+                let amount = p.price * Decimal::from(p.quantity);
+                let _ = guard.execute(
+                    sqlx::query(
+                        "INSERT INTO lead_products (lead_id, product_id, quantity, price, amount)
+                         VALUES ($1, $2, $3, $4, $5)"
+                    )
+                    .bind(id)
+                    .bind(p.product_id)
+                    .bind(p.quantity)
+                    .bind(p.price)
+                    .bind(amount),
+                ).await;
+            }
+        }
+    }
 
     let _ = guard.release().await;
 

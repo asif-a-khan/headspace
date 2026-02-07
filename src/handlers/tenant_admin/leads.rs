@@ -155,6 +155,20 @@ pub async fn create(
         .await
         .unwrap_or_default();
 
+    let organizations = guard
+        .fetch_all(sqlx::query_as::<_, crate::models::organization::Organization>(
+            "SELECT * FROM organizations ORDER BY name",
+        ))
+        .await
+        .unwrap_or_default();
+
+    let all_products = guard
+        .fetch_all(sqlx::query_as::<_, crate::models::product::Product>(
+            "SELECT * FROM products ORDER BY name",
+        ))
+        .await
+        .unwrap_or_default();
+
     let _ = guard.release().await;
 
     let initial_data = serde_json::json!({
@@ -164,6 +178,8 @@ pub async fn create(
         "types": types,
         "persons": persons,
         "users": users,
+        "organizations": organizations,
+        "all_products": all_products,
         "admin_name": user.full_name(),
         "company_name": company.name,
     });
@@ -242,6 +258,37 @@ pub async fn edit(
         .await
         .unwrap_or_default();
 
+    let organizations = guard
+        .fetch_all(sqlx::query_as::<_, crate::models::organization::Organization>(
+            "SELECT * FROM organizations ORDER BY name",
+        ))
+        .await
+        .unwrap_or_default();
+
+    let all_products = guard
+        .fetch_all(sqlx::query_as::<_, crate::models::product::Product>(
+            "SELECT * FROM products ORDER BY name",
+        ))
+        .await
+        .unwrap_or_default();
+
+    // Existing lead products for the Products tab
+    let lead_products = if lead.is_some() {
+        guard
+            .fetch_all(sqlx::query_as::<_, crate::models::lead::LeadProductRow>(
+                "SELECT lp.id, lp.lead_id, lp.product_id, lp.quantity, lp.price, lp.amount,
+                        p.name AS product_name, p.sku AS product_sku
+                 FROM lead_products lp
+                 JOIN products p ON p.id = lp.product_id
+                 WHERE lp.lead_id = $1
+                 ORDER BY lp.id",
+            ).bind(id))
+            .await
+            .unwrap_or_default()
+    } else {
+        vec![]
+    };
+
     let _ = guard.release().await;
 
     let initial_data = serde_json::json!({
@@ -252,6 +299,9 @@ pub async fn edit(
         "types": types,
         "persons": persons,
         "users": users,
+        "organizations": organizations,
+        "all_products": all_products,
+        "lead_products": lead_products,
         "admin_name": user.full_name(),
         "company_name": company.name,
     });

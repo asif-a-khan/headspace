@@ -155,6 +155,52 @@
           </v-card-text>
         </v-card>
       </v-col>
+
+      <v-col cols="12" md="6">
+        <v-card>
+          <v-card-title>Email / IMAP</v-card-title>
+          <v-card-text>
+            <v-text-field
+              v-model="config['email.imap.host']"
+              label="IMAP Host"
+              placeholder="imap.gmail.com"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+            />
+            <v-text-field
+              v-model="config['email.imap.port']"
+              label="IMAP Port"
+              placeholder="993"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+            />
+            <v-select
+              v-model="config['email.imap.encryption']"
+              :items="encryptionOptions"
+              label="Encryption"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+            />
+            <v-text-field
+              v-model="config['email.imap.username']"
+              label="Username"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+            />
+            <v-text-field
+              v-model="config['email.imap.password']"
+              label="Password"
+              type="password"
+              variant="outlined"
+              density="compact"
+            />
+          </v-card-text>
+        </v-card>
+      </v-col>
     </v-row>
 
     <div class="d-flex mt-4">

@@ -79,6 +79,9 @@ fn tenant_admin_routes() -> Router {
         // Public routes (tenant resolution only, no auth)
         .route("/admin/login", get(handlers::tenant_admin::auth::login_page))
         .route("/admin/api/login", post(api::tenant_admin::auth::login))
+        // Public web forms (tenant resolution only, no auth)
+        .route("/web-forms/{form_id}", get(handlers::public::web_forms::render_form))
+        .route("/web-forms/{form_id}/submit", post(api::public::web_forms::submit))
         // Protected routes (tenant resolution + auth)
         .merge(tenant_admin_protected_routes())
         // Tenant resolution middleware for ALL /admin/* routes
@@ -177,6 +180,7 @@ fn tenant_admin_protected_routes() -> Router {
         .route("/admin/api/contacts/organizations/{id}", get(api::tenant_admin::organizations::show).put(api::tenant_admin::organizations::update).delete(api::tenant_admin::organizations::destroy))
         // Quote API routes
         .route("/admin/api/quotes", get(api::tenant_admin::quotes::list).post(api::tenant_admin::quotes::store))
+        .route("/admin/api/quotes/search", get(api::tenant_admin::quotes::search))
         .route("/admin/api/quotes/{id}", get(api::tenant_admin::quotes::show).put(api::tenant_admin::quotes::update).delete(api::tenant_admin::quotes::destroy))
         .route("/admin/api/quotes/{id}/pdf", get(api::tenant_admin::quotes::download_pdf))
         // Activity API routes
@@ -190,6 +194,7 @@ fn tenant_admin_protected_routes() -> Router {
         .route("/admin/api/products/{id}", get(api::tenant_admin::products::show).put(api::tenant_admin::products::update).delete(api::tenant_admin::products::destroy))
         // Lead API routes
         .route("/admin/api/leads", get(api::tenant_admin::leads::list).post(api::tenant_admin::leads::store))
+        .route("/admin/api/leads/search", get(api::tenant_admin::leads::search))
         .route("/admin/api/leads/kanban", get(api::tenant_admin::leads::kanban))
         .route("/admin/api/leads/{id}", get(api::tenant_admin::leads::show).put(api::tenant_admin::leads::update).delete(api::tenant_admin::leads::destroy))
         .route("/admin/api/leads/{id}/stage", axum::routing::put(api::tenant_admin::leads::update_stage))
@@ -219,5 +224,23 @@ fn tenant_admin_protected_routes() -> Router {
         .route("/admin/api/contacts/organizations/import", post(api::tenant_admin::data_transfer::import_organizations))
         .route("/admin/api/products/export", get(api::tenant_admin::data_transfer::export_products))
         .route("/admin/api/products/import", post(api::tenant_admin::data_transfer::import_products))
+        // Email Templates
+        .route("/admin/settings/email-templates", get(handlers::tenant_admin::email_templates::index))
+        .route("/admin/settings/email-templates/create", get(handlers::tenant_admin::email_templates::create))
+        .route("/admin/settings/email-templates/{id}/edit", get(handlers::tenant_admin::email_templates::edit))
+        .route("/admin/api/settings/email-templates", get(api::tenant_admin::email_templates::list).post(api::tenant_admin::email_templates::store))
+        .route("/admin/api/settings/email-templates/{id}", get(api::tenant_admin::email_templates::show).put(api::tenant_admin::email_templates::update).delete(api::tenant_admin::email_templates::destroy))
+        // Warehouses
+        .route("/admin/settings/warehouses", get(handlers::tenant_admin::warehouses::index))
+        .route("/admin/settings/warehouses/create", get(handlers::tenant_admin::warehouses::create))
+        .route("/admin/settings/warehouses/{id}/edit", get(handlers::tenant_admin::warehouses::edit))
+        .route("/admin/api/settings/warehouses", get(api::tenant_admin::warehouses::list).post(api::tenant_admin::warehouses::store))
+        .route("/admin/api/settings/warehouses/{id}", get(api::tenant_admin::warehouses::show).put(api::tenant_admin::warehouses::update).delete(api::tenant_admin::warehouses::destroy))
+        // Web Forms
+        .route("/admin/settings/web-forms", get(handlers::tenant_admin::web_forms::index))
+        .route("/admin/settings/web-forms/create", get(handlers::tenant_admin::web_forms::create))
+        .route("/admin/settings/web-forms/{id}/edit", get(handlers::tenant_admin::web_forms::edit))
+        .route("/admin/api/settings/web-forms", get(api::tenant_admin::web_forms::list).post(api::tenant_admin::web_forms::store))
+        .route("/admin/api/settings/web-forms/{id}", get(api::tenant_admin::web_forms::show).put(api::tenant_admin::web_forms::update).delete(api::tenant_admin::web_forms::destroy))
         .layer(middleware::from_fn(require_tenant_admin))
 }

@@ -55,15 +55,30 @@ const categories: SettingsCategory[] = [
       { title: "Pipelines", subtitle: "Configure sales pipelines and stages", icon: "mdi-pipe", href: "/admin/settings/pipelines" },
       { title: "Sources", subtitle: "Manage lead sources", icon: "mdi-source-branch", href: "/admin/settings/sources" },
       { title: "Types", subtitle: "Manage lead types", icon: "mdi-tag-multiple", href: "/admin/settings/types" },
+      { title: "Web Forms", subtitle: "Embeddable forms for lead capture", icon: "mdi-form-select", href: "/admin/settings/web-forms" },
+    ],
+  },
+  {
+    title: "Automation",
+    description: "Templates and automation tools",
+    cards: [
+      { title: "Attributes", subtitle: "Manage custom fields for entities", icon: "mdi-format-list-bulleted-type", href: "/admin/settings/attributes" },
+      { title: "Email Templates", subtitle: "Reusable email templates", icon: "mdi-email-edit-outline", href: "/admin/settings/email-templates" },
+    ],
+  },
+  {
+    title: "Warehouse",
+    description: "Manage warehouses and locations",
+    cards: [
+      { title: "Warehouses", subtitle: "Manage warehouse locations and contacts", icon: "mdi-warehouse", href: "/admin/settings/warehouses" },
     ],
   },
   {
     title: "Other Settings",
-    description: "Manage extra settings",
+    description: "Tags, configuration and more",
     cards: [
       { title: "Tags", subtitle: "Manage tags for categorizing records", icon: "mdi-tag-multiple-outline", href: "/admin/settings/tags" },
-      { title: "Attributes", subtitle: "Manage custom fields for entities", icon: "mdi-format-list-bulleted-type", href: "/admin/settings/attributes" },
-      { title: "Configuration", subtitle: "Currency, date format, appearance", icon: "mdi-cog", href: "/admin/settings/configuration" },
+      { title: "Configuration", subtitle: "Currency, date format, email, appearance", icon: "mdi-cog", href: "/admin/settings/configuration" },
     ],
   },
 ];

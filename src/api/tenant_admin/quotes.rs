@@ -10,7 +10,7 @@ use crate::auth::bouncer::{bouncer, validate_payload};
 use crate::db::guard::TenantGuard;
 use crate::db::Database;
 use crate::models::company::Company;
-use crate::models::quote::{Quote, QuoteItem, QuoteRow};
+use crate::models::quote::{Quote, QuoteItem, QuoteRow, QuoteSearchRow};
 use crate::models::tenant_admin::TenantUser;
 
 use super::contacts::view_permission_filter;
@@ -48,6 +48,7 @@ pub struct QuotePayload {
     pub person_id: Option<i64>,
     pub user_id: Option<i64>,
     pub items: Option<Vec<QuoteItemPayload>>,
+    pub lead_id: Option<i64>,
 }
 
 pub async fn list(
@@ -88,6 +89,43 @@ pub async fn list(
             internal_error()
         }
     }
+}
+
+pub async fn search(
+    Extension(db): Extension<Database>,
+    Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Response {
+    if let Err(resp) = bouncer(&user, "quotes") { return resp; }
+
+    let q = params.get("q").map(|s| s.as_str()).unwrap_or("");
+    if q.len() < 2 {
+        return Json(serde_json::json!({ "data": [] })).into_response();
+    }
+
+    let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
+        Ok(g) => g,
+        Err(e) => {
+            tracing::error!("Failed to acquire tenant connection: {e}");
+            return internal_error();
+        }
+    };
+
+    let pattern = format!("%{q}%");
+    let results = guard
+        .fetch_all(
+            sqlx::query_as::<_, QuoteSearchRow>(
+                "SELECT id, subject, grand_total FROM quotes WHERE subject ILIKE $1 ORDER BY id DESC LIMIT 10",
+            )
+            .bind(&pattern),
+        )
+        .await
+        .unwrap_or_default();
+
+    let _ = guard.release().await;
+
+    Json(serde_json::json!({ "data": results })).into_response()
 }
 
 pub async fn store(
@@ -163,6 +201,19 @@ pub async fn store(
                     )
                     .await;
             }
+        }
+
+        // Auto-link to lead if lead_id provided
+        if let Some(lead_id) = payload.lead_id {
+            let _ = guard
+                .execute(
+                    sqlx::query(
+                        "INSERT INTO lead_quotes (lead_id, quote_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                    )
+                    .bind(lead_id)
+                    .bind(quote.id),
+                )
+                .await;
         }
     }
 

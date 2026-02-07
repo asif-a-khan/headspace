@@ -36,6 +36,14 @@ pub struct QuoteRow {
     pub user_name: Option<String>,
 }
 
+/// Lightweight quote search result.
+#[derive(Debug, Clone, sqlx::FromRow, Serialize)]
+pub struct QuoteSearchRow {
+    pub id: i64,
+    pub subject: String,
+    pub grand_total: Option<Decimal>,
+}
+
 #[derive(Debug, Clone, sqlx::FromRow, Serialize)]
 pub struct QuoteItem {
     pub id: i64,

@@ -227,6 +227,16 @@
               v-if="canEdit"
               size="small"
               variant="text"
+              prepend-icon="mdi-plus"
+              :href="`/admin/quotes/create?lead_id=${lead.id}`"
+              class="mr-1"
+            >
+              Create Quote
+            </v-btn>
+            <v-btn
+              v-if="canEdit"
+              size="small"
+              variant="text"
               prepend-icon="mdi-link-plus"
               @click="showLinkQuoteDialog = true"
             >
@@ -497,16 +507,22 @@
     </v-dialog>
 
     <!-- Link Quote Dialog -->
-    <v-dialog v-model="showLinkQuoteDialog" max-width="440">
+    <v-dialog v-model="showLinkQuoteDialog" max-width="500">
       <v-card>
         <v-card-title>Link Quote</v-card-title>
         <v-card-text>
-          <v-text-field
-            v-model.number="linkQuoteId"
-            label="Quote ID"
-            type="number"
+          <v-combobox
+            v-model="selectedQuoteSearch"
+            :items="quoteSearchResults"
+            :loading="quoteSearchLoading"
+            item-title="label"
+            item-value="id"
+            label="Search quotes by subject..."
             density="compact"
             hide-details
+            return-object
+            clearable
+            @update:search="onQuoteSearch"
           />
         </v-card-text>
         <v-card-actions>
@@ -515,7 +531,7 @@
           <v-btn
             color="primary"
             :loading="linkingQuote"
-            :disabled="!linkQuoteId"
+            :disabled="!selectedQuoteSearch?.id"
             @click="doLinkQuote"
           >
             Link
@@ -701,15 +717,39 @@ async function removeProduct(lineId: number) {
 // --- Quotes ---
 const showLinkQuoteDialog = ref(false);
 const linkingQuote = ref(false);
-const linkQuoteId = ref<number | null>(null);
+const quoteSearchResults = ref<any[]>([]);
+const quoteSearchLoading = ref(false);
+const selectedQuoteSearch = ref<any>(null);
+let quoteSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+function onQuoteSearch(val: string) {
+  if (quoteSearchTimer) clearTimeout(quoteSearchTimer);
+  if (!val || val.length < 2) {
+    quoteSearchResults.value = [];
+    return;
+  }
+  quoteSearchTimer = setTimeout(async () => {
+    quoteSearchLoading.value = true;
+    try {
+      const res = await get<{ data: any[] }>(`/admin/api/quotes/search?q=${encodeURIComponent(val)}`);
+      quoteSearchResults.value = res.data.map((q: any) => ({
+        id: q.id,
+        label: `#${q.id} - ${q.subject}${q.grand_total ? ` ($${Number(q.grand_total).toLocaleString()})` : ""}`,
+      }));
+    } catch { /* ignore */ }
+    quoteSearchLoading.value = false;
+  }, 300);
+}
 
 async function doLinkQuote() {
-  if (!linkQuoteId.value) return;
+  const quoteId = selectedQuoteSearch.value?.id;
+  if (!quoteId) return;
   linkingQuote.value = true;
   try {
-    await post(`/admin/api/leads/${lead.id}/quotes`, { quote_id: linkQuoteId.value });
+    await post(`/admin/api/leads/${lead.id}/quotes`, { quote_id: quoteId });
     showLinkQuoteDialog.value = false;
-    linkQuoteId.value = null;
+    selectedQuoteSearch.value = null;
+    quoteSearchResults.value = [];
     const res = await get<{ data: any[] }>(`/admin/api/leads/${lead.id}/quotes`);
     leadQuotes.value = res.data;
   } catch (err: any) {

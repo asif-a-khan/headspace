@@ -260,11 +260,13 @@ const userItems = computed(() =>
 );
 
 const quote = data.quote;
+const leadId: number | null = data.lead_id || null;
+
 const form = reactive({
   subject: quote?.subject || "",
   description: quote?.description || "",
-  person_id: quote?.person_id || null,
-  user_id: quote?.user_id || null,
+  person_id: quote?.person_id || data.pre_person_id || null,
+  user_id: quote?.user_id || data.pre_user_id || null,
   expired_at: quote?.expired_at ? quote.expired_at.split("T")[0] : "",
   adjustment_amount: Number(quote?.adjustment_amount || 0),
   discount_percent: Number(quote?.discount_percent || 0),
@@ -392,7 +394,7 @@ async function submit() {
 
   saving.value = true;
   try {
-    const payload = {
+    const payload: Record<string, unknown> = {
       subject: form.subject,
       description: form.description || null,
       person_id: form.person_id || null,
@@ -408,13 +410,17 @@ async function submit() {
       tax_amount: taxTotal.value,
       items: items.value,
     };
+    if (leadId && !isEdit.value) {
+      payload.lead_id = leadId;
+    }
 
     if (isEdit.value) {
       await store.update(quote.id, payload);
+      window.location.href = "/admin/quotes";
     } else {
       await store.create(payload);
+      window.location.href = leadId ? `/admin/leads/${leadId}` : "/admin/quotes";
     }
-    window.location.href = "/admin/quotes";
   } catch (err: any) {
     errorMessage.value = err.message || "An error occurred.";
     errorSnackbar.value = true;

@@ -5,5 +5,6 @@
 //! routes pattern (see `docs/architecture/DESIGN_PATTERN.md`).
 
 pub mod pagination;
+pub mod public;
 pub mod super_admin;
 pub mod tenant_admin;

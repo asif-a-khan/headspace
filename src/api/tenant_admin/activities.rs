@@ -346,6 +346,25 @@ pub async fn update(
         .await;
 
     if let Ok(Some(ref a)) = result {
+        // Sync lead associations
+        if let Some(ref lead_ids) = payload.lead_ids {
+            let _ = guard
+                .execute(
+                    sqlx::query("DELETE FROM lead_activities WHERE activity_id = $1")
+                        .bind(a.id),
+                )
+                .await;
+            for lid in lead_ids {
+                let _ = guard
+                    .execute(
+                        sqlx::query("INSERT INTO lead_activities (lead_id, activity_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+                            .bind(lid)
+                            .bind(a.id),
+                    )
+                    .await;
+            }
+        }
+
         save_participants(
             &mut guard,
             a.id,
