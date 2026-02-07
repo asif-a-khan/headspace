@@ -183,6 +183,15 @@ pub static TENANT_ADMIN_ACL: &[AclItem] = &[
         ],
     },
     AclItem {
+        key: "tags",
+        name: "Tags",
+        children: &[
+            AclItem { key: "tags.create", name: "Create", children: &[] },
+            AclItem { key: "tags.edit", name: "Edit", children: &[] },
+            AclItem { key: "tags.delete", name: "Delete", children: &[] },
+        ],
+    },
+    AclItem {
         key: "settings",
         name: "Settings",
         children: &[
@@ -202,6 +211,51 @@ pub static TENANT_ADMIN_ACL: &[AclItem] = &[
                     AclItem { key: "settings.roles.create", name: "Create", children: &[] },
                     AclItem { key: "settings.roles.edit", name: "Edit", children: &[] },
                     AclItem { key: "settings.roles.delete", name: "Delete", children: &[] },
+                ],
+            },
+            AclItem {
+                key: "settings.groups",
+                name: "Groups",
+                children: &[
+                    AclItem { key: "settings.groups.create", name: "Create", children: &[] },
+                    AclItem { key: "settings.groups.edit", name: "Edit", children: &[] },
+                    AclItem { key: "settings.groups.delete", name: "Delete", children: &[] },
+                ],
+            },
+            AclItem {
+                key: "settings.pipelines",
+                name: "Pipelines",
+                children: &[
+                    AclItem { key: "settings.pipelines.create", name: "Create", children: &[] },
+                    AclItem { key: "settings.pipelines.edit", name: "Edit", children: &[] },
+                    AclItem { key: "settings.pipelines.delete", name: "Delete", children: &[] },
+                ],
+            },
+            AclItem {
+                key: "settings.sources",
+                name: "Sources",
+                children: &[
+                    AclItem { key: "settings.sources.create", name: "Create", children: &[] },
+                    AclItem { key: "settings.sources.edit", name: "Edit", children: &[] },
+                    AclItem { key: "settings.sources.delete", name: "Delete", children: &[] },
+                ],
+            },
+            AclItem {
+                key: "settings.types",
+                name: "Types",
+                children: &[
+                    AclItem { key: "settings.types.create", name: "Create", children: &[] },
+                    AclItem { key: "settings.types.edit", name: "Edit", children: &[] },
+                    AclItem { key: "settings.types.delete", name: "Delete", children: &[] },
+                ],
+            },
+            AclItem {
+                key: "settings.attributes",
+                name: "Attributes",
+                children: &[
+                    AclItem { key: "settings.attributes.create", name: "Create", children: &[] },
+                    AclItem { key: "settings.attributes.edit", name: "Edit", children: &[] },
+                    AclItem { key: "settings.attributes.delete", name: "Delete", children: &[] },
                 ],
             },
         ],

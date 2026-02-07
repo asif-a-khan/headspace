@@ -114,19 +114,14 @@
           rounded="lg"
         />
 
-        <v-list-group value="settings">
-          <template #activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              prepend-icon="mdi-cog"
-              title="Settings"
-              disabled
-              rounded="lg"
-            />
-          </template>
-          <v-list-item title="Users" disabled rounded="lg" />
-          <v-list-item title="Roles" disabled rounded="lg" />
-        </v-list-group>
+        <v-list-item
+          prepend-icon="mdi-cog"
+          title="Settings"
+          href="/admin/settings"
+          :active="isActive('/admin/settings')"
+          :class="{ 'active-item': isActive('/admin/settings') }"
+          rounded="lg"
+        />
       </v-list>
     </v-navigation-drawer>
 
@@ -167,7 +162,6 @@ const isDark = computed(() => theme.global.current.value.dark);
 const openGroups = computed(() => {
   const groups: string[] = [];
   if (currentPath.startsWith("/admin/contacts")) groups.push("contacts");
-  if (currentPath.startsWith("/admin/settings")) groups.push("settings");
   return groups;
 });
 

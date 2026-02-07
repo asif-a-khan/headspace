@@ -90,5 +90,23 @@ fn tenant_admin_protected_routes() -> Router {
     Router::new()
         .route("/admin/logout", post(handlers::tenant_admin::auth::logout))
         .route("/admin/dashboard", get(handlers::tenant_admin::dashboard::index))
+        // Settings pages
+        .route("/admin/settings", get(handlers::tenant_admin::settings::index))
+        .route("/admin/settings/users", get(handlers::tenant_admin::settings::users_index))
+        .route("/admin/settings/users/create", get(handlers::tenant_admin::settings::users_create))
+        .route("/admin/settings/users/{id}/edit", get(handlers::tenant_admin::settings::users_edit))
+        .route("/admin/settings/roles", get(handlers::tenant_admin::settings::roles_index))
+        .route("/admin/settings/roles/create", get(handlers::tenant_admin::settings::roles_create))
+        .route("/admin/settings/roles/{id}/edit", get(handlers::tenant_admin::settings::roles_edit))
+        .route("/admin/settings/groups", get(handlers::tenant_admin::settings::groups_index))
+        .route("/admin/settings/groups/create", get(handlers::tenant_admin::settings::groups_create))
+        .route("/admin/settings/groups/{id}/edit", get(handlers::tenant_admin::settings::groups_edit))
+        // Settings API routes
+        .route("/admin/api/settings/users", get(api::tenant_admin::users::list).post(api::tenant_admin::users::store))
+        .route("/admin/api/settings/users/{id}", get(api::tenant_admin::users::show).put(api::tenant_admin::users::update).delete(api::tenant_admin::users::destroy))
+        .route("/admin/api/settings/roles", get(api::tenant_admin::roles::list).post(api::tenant_admin::roles::store))
+        .route("/admin/api/settings/roles/{id}", get(api::tenant_admin::roles::show).put(api::tenant_admin::roles::update).delete(api::tenant_admin::roles::destroy))
+        .route("/admin/api/settings/groups", get(api::tenant_admin::groups::list).post(api::tenant_admin::groups::store))
+        .route("/admin/api/settings/groups/{id}", get(api::tenant_admin::groups::show).put(api::tenant_admin::groups::update).delete(api::tenant_admin::groups::destroy))
         .layer(middleware::from_fn(require_tenant_admin))
 }

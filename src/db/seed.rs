@@ -98,16 +98,30 @@ pub async fn seed_default_tenant_admin(
     let email = format!("admin@{domain}.headspace.local");
     let password_hash = hash_password("admin123")?;
 
-    sqlx::query(
+    let user_id: (i64,) = sqlx::query_as(
         "INSERT INTO users (first_name, last_name, email, password_hash, role_id, status)
-         VALUES ('Admin', $1, $2, $3, $4, true)",
+         VALUES ('Admin', $1, $2, $3, $4, true)
+         RETURNING id",
     )
     .bind(domain)
     .bind(&email)
     .bind(&password_hash)
     .bind(role_id.0)
-    .execute(&mut conn)
+    .fetch_one(&mut conn)
     .await?;
+
+    // Create default "General" group and assign admin to it
+    let group_id: (i64,) = sqlx::query_as(
+        "INSERT INTO groups (name, description) VALUES ('General', 'Default group') RETURNING id",
+    )
+    .fetch_one(&mut conn)
+    .await?;
+
+    sqlx::query("INSERT INTO user_groups (user_id, group_id) VALUES ($1, $2)")
+        .bind(user_id.0)
+        .bind(group_id.0)
+        .execute(&mut conn)
+        .await?;
 
     // conn is dropped here — closed, not returned to pool.
 

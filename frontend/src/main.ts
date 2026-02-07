@@ -21,6 +21,13 @@ import SettingsIndex from "./components/super/SettingsIndex.vue";
 // Tenant admin page components
 import AdminLoginForm from "./components/admin/LoginForm.vue";
 import AdminDashboard from "./components/admin/Dashboard.vue";
+import AdminSettingsIndex from "./components/admin/settings/SettingsIndex.vue";
+import AdminUserList from "./components/admin/settings/UserList.vue";
+import AdminUserForm from "./components/admin/settings/UserForm.vue";
+import AdminRoleList from "./components/admin/settings/RoleList.vue";
+import AdminRoleForm from "./components/admin/settings/RoleForm.vue";
+import AdminGroupList from "./components/admin/settings/GroupList.vue";
+import AdminGroupForm from "./components/admin/settings/GroupForm.vue";
 
 const pages: Record<string, { layout: Component; component: Component }> = {
   // Super admin pages
@@ -36,6 +43,13 @@ const pages: Record<string, { layout: Component; component: Component }> = {
   // Tenant admin pages
   "admin-login": { layout: AnonymousLayout, component: AdminLoginForm },
   "admin-dashboard": { layout: TenantAdminLayout, component: AdminDashboard },
+  "admin-settings": { layout: TenantAdminLayout, component: AdminSettingsIndex },
+  "admin-user-list": { layout: TenantAdminLayout, component: AdminUserList },
+  "admin-user-form": { layout: TenantAdminLayout, component: AdminUserForm },
+  "admin-role-list": { layout: TenantAdminLayout, component: AdminRoleList },
+  "admin-role-form": { layout: TenantAdminLayout, component: AdminRoleForm },
+  "admin-group-list": { layout: TenantAdminLayout, component: AdminGroupList },
+  "admin-group-form": { layout: TenantAdminLayout, component: AdminGroupForm },
 };
 
 // Mount after all assets loaded (no blank page flash)
