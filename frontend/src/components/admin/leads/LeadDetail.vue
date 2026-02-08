@@ -1,403 +1,12 @@
 <template>
   <div>
-    <!-- Stage Progress Bar -->
-    <v-card class="mb-4">
-      <v-card-text class="d-flex align-center flex-wrap ga-1 py-3">
-        <v-chip
-          v-for="stage in stages"
-          :key="stage.id"
-          :color="stage.id === lead.lead_pipeline_stage_id ? 'primary' : 'default'"
-          :variant="stage.id === lead.lead_pipeline_stage_id ? 'elevated' : 'tonal'"
-          class="font-weight-medium"
-          @click="moveToStage(stage.id)"
-        >
-          {{ stage.stage_name }}
-          <span class="text-caption ml-1">({{ stage.probability }}%)</span>
-        </v-chip>
-
-        <v-divider vertical class="mx-2" />
-
-        <v-btn
-          v-if="lead.status === null"
-          color="success"
-          size="small"
-          variant="tonal"
-          prepend-icon="mdi-trophy"
-          :loading="markingWon"
-          @click="markWon"
-        >
-          Won
-        </v-btn>
-        <v-btn
-          v-if="lead.status === null"
-          color="error"
-          size="small"
-          variant="tonal"
-          prepend-icon="mdi-close-circle"
-          class="ml-1"
-          @click="showLostDialog = true"
-        >
-          Lost
-        </v-btn>
-
-        <v-chip v-if="lead.status === true" color="success" variant="elevated">
-          <v-icon start size="small">mdi-trophy</v-icon>
-          Won
-        </v-chip>
-        <v-chip v-if="lead.status === false" color="error" variant="elevated">
-          <v-icon start size="small">mdi-close-circle</v-icon>
-          Lost
-        </v-chip>
-      </v-card-text>
-    </v-card>
-
-    <v-row>
-      <!-- Left Column: Lead Info -->
-      <v-col cols="12" md="8">
-        <!-- Lead Info Card -->
-        <v-card class="mb-4">
-          <v-card-text>
-            <div class="d-flex align-center mb-4">
-              <div>
-                <h1 class="text-h5 font-weight-bold">{{ lead.title }}</h1>
-                <div class="text-caption text-medium-emphasis mt-1">
-                  Lead #{{ lead.id }}
-                  <span v-if="pipelineName" class="ml-2">
-                    <v-icon size="x-small" class="mr-1">mdi-pipe</v-icon>{{ pipelineName }}
-                  </span>
-                </div>
-              </div>
-              <v-spacer />
-              <v-chip
-                v-if="lead.status === null"
-                color="info"
-                variant="tonal"
-                size="small"
-              >
-                Open
-              </v-chip>
-              <v-chip
-                v-else-if="lead.status === true"
-                color="success"
-                variant="tonal"
-                size="small"
-              >
-                Won
-              </v-chip>
-              <v-chip
-                v-else
-                color="error"
-                variant="tonal"
-                size="small"
-              >
-                Lost
-              </v-chip>
-            </div>
-
-            <div v-if="lead.description" class="text-body-1 mb-4">
-              {{ lead.description }}
-            </div>
-
-            <v-divider class="mb-4" />
-
-            <v-row dense>
-              <v-col cols="12" sm="6">
-                <div class="text-caption text-medium-emphasis">Value</div>
-                <div class="text-body-1 font-weight-medium">
-                  {{ lead.lead_value ? `$${Number(lead.lead_value).toLocaleString()}` : '-' }}
-                </div>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <div class="text-caption text-medium-emphasis">Expected Close Date</div>
-                <div class="text-body-1">
-                  {{ lead.expected_close_date ? formatDate(lead.expected_close_date) : '-' }}
-                </div>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <div class="text-caption text-medium-emphasis">Source</div>
-                <div class="text-body-1">{{ sourceName || '-' }}</div>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <div class="text-caption text-medium-emphasis">Type</div>
-                <div class="text-body-1">{{ typeName || '-' }}</div>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <div class="text-caption text-medium-emphasis">Assigned To</div>
-                <div class="text-body-1">{{ userName || '-' }}</div>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <div class="text-caption text-medium-emphasis">Pipeline</div>
-                <div class="text-body-1">{{ pipelineName || '-' }}</div>
-              </v-col>
-              <v-col v-if="lead.closed_at" cols="12" sm="6">
-                <div class="text-caption text-medium-emphasis">Closed At</div>
-                <div class="text-body-1">{{ formatDateTime(lead.closed_at) }}</div>
-              </v-col>
-              <v-col v-if="lead.lost_reason" cols="12">
-                <div class="text-caption text-medium-emphasis">Lost Reason</div>
-                <div class="text-body-1">{{ lead.lost_reason }}</div>
-              </v-col>
-            </v-row>
-
-            <v-divider class="my-4" />
-
-            <v-row dense>
-              <v-col cols="12" sm="6">
-                <div class="text-caption text-medium-emphasis">Created</div>
-                <div class="text-body-2">{{ formatDateTime(lead.created_at) }}</div>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <div class="text-caption text-medium-emphasis">Updated</div>
-                <div class="text-body-2">{{ formatDateTime(lead.updated_at) }}</div>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
-
-        <!-- Products Section -->
-        <v-card class="mb-4">
-          <v-card-title class="d-flex align-center">
-            <v-icon start>mdi-package-variant</v-icon>
-            Products
-            <v-chip size="x-small" variant="tonal" class="ml-2">{{ leadProducts.length }}</v-chip>
-            <v-spacer />
-            <v-btn
-              v-if="canEdit"
-              size="small"
-              variant="text"
-              prepend-icon="mdi-plus"
-              @click="showAddProductDialog = true"
-            >
-              Add Product
-            </v-btn>
-          </v-card-title>
-          <v-card-text v-if="leadProducts.length">
-            <v-table density="compact">
-              <thead>
-                <tr>
-                  <th>SKU</th>
-                  <th>Product</th>
-                  <th class="text-right">Price</th>
-                  <th class="text-right">Qty</th>
-                  <th class="text-right">Amount</th>
-                  <th v-if="canEdit" width="50"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="lp in leadProducts" :key="lp.id">
-                  <td class="text-caption">{{ lp.product_sku }}</td>
-                  <td>{{ lp.product_name }}</td>
-                  <td class="text-right">${{ Number(lp.price).toLocaleString() }}</td>
-                  <td class="text-right">{{ lp.quantity }}</td>
-                  <td class="text-right font-weight-medium">${{ Number(lp.amount).toLocaleString() }}</td>
-                  <td v-if="canEdit">
-                    <v-btn
-                      icon="mdi-close"
-                      size="x-small"
-                      variant="text"
-                      color="error"
-                      @click="removeProduct(lp.id)"
-                    />
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot v-if="leadProducts.length > 1">
-                <tr>
-                  <td colspan="4" class="text-right font-weight-bold">Total</td>
-                  <td class="text-right font-weight-bold">${{ productsTotal }}</td>
-                  <td v-if="canEdit"></td>
-                </tr>
-              </tfoot>
-            </v-table>
-          </v-card-text>
-          <v-card-text v-else class="text-center text-medium-emphasis py-8">
-            <v-icon size="48" color="grey-lighten-1" class="mb-2">mdi-package-variant</v-icon>
-            <div>No products attached</div>
-          </v-card-text>
-        </v-card>
-
-        <!-- Quotes Section -->
-        <v-card class="mb-4">
-          <v-card-title class="d-flex align-center">
-            <v-icon start>mdi-file-document-outline</v-icon>
-            Quotes
-            <v-chip size="x-small" variant="tonal" class="ml-2">{{ leadQuotes.length }}</v-chip>
-            <v-spacer />
-            <v-btn
-              v-if="canEdit"
-              size="small"
-              variant="text"
-              prepend-icon="mdi-plus"
-              :href="`/admin/quotes/create?lead_id=${lead.id}`"
-              class="mr-1"
-            >
-              Create Quote
-            </v-btn>
-            <v-btn
-              v-if="canEdit"
-              size="small"
-              variant="text"
-              prepend-icon="mdi-link-plus"
-              @click="showLinkQuoteDialog = true"
-            >
-              Link Quote
-            </v-btn>
-          </v-card-title>
-          <v-card-text v-if="leadQuotes.length">
-            <v-list density="compact">
-              <v-list-item
-                v-for="q in leadQuotes"
-                :key="q.id"
-                :href="`/admin/quotes/${q.id}/edit`"
-              >
-                <v-list-item-title>{{ q.subject }}</v-list-item-title>
-                <v-list-item-subtitle>
-                  <span v-if="q.grand_total">Total: ${{ Number(q.grand_total).toLocaleString() }}</span>
-                  <span v-if="q.expired_at" class="ml-2">Expires: {{ formatDate(q.expired_at) }}</span>
-                </v-list-item-subtitle>
-                <template v-if="canEdit" #append>
-                  <v-btn
-                    icon="mdi-link-off"
-                    size="x-small"
-                    variant="text"
-                    color="error"
-                    @click.prevent="unlinkQuote(q.id)"
-                  />
-                </template>
-              </v-list-item>
-            </v-list>
-          </v-card-text>
-          <v-card-text v-else class="text-center text-medium-emphasis py-8">
-            <v-icon size="48" color="grey-lighten-1" class="mb-2">mdi-file-document-outline</v-icon>
-            <div>No quotes linked</div>
-          </v-card-text>
-        </v-card>
-
-        <!-- Activities Section -->
-        <v-card class="mb-4">
-          <v-card-title class="d-flex align-center">
-            <v-icon start>mdi-calendar-check</v-icon>
-            Activities
-            <v-chip size="x-small" variant="tonal" class="ml-2">{{ activities.length }}</v-chip>
-          </v-card-title>
-          <v-card-text v-if="activities.length">
-            <v-list lines="two" density="compact">
-              <v-list-item
-                v-for="activity in activities"
-                :key="activity.id"
-              >
-                <template #prepend>
-                  <v-icon
-                    :color="activity.is_done ? 'success' : 'grey'"
-                    size="small"
-                  >
-                    {{ activity.is_done ? 'mdi-check-circle' : 'mdi-circle-outline' }}
-                  </v-icon>
-                </template>
-                <v-list-item-title class="d-flex align-center ga-2">
-                  {{ activity.title }}
-                  <v-chip :color="activityTypeColor(activity.type)" size="x-small">
-                    {{ activity.type }}
-                  </v-chip>
-                </v-list-item-title>
-                <v-list-item-subtitle>
-                  <span v-if="activity.schedule_from">
-                    {{ formatDateTime(activity.schedule_from) }}
-                    <span v-if="activity.schedule_to"> - {{ formatDateTime(activity.schedule_to) }}</span>
-                  </span>
-                  <span v-if="activity.comment" class="ml-2 text-medium-emphasis">
-                    {{ activity.comment }}
-                  </span>
-                </v-list-item-subtitle>
-              </v-list-item>
-            </v-list>
-          </v-card-text>
-          <v-card-text v-else class="text-center text-medium-emphasis py-8">
-            <v-icon size="48" color="grey-lighten-1" class="mb-2">mdi-calendar-blank</v-icon>
-            <div>No activities yet</div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-
-      <!-- Right Column: Sidebar -->
-      <v-col cols="12" md="4">
-        <!-- Action Buttons -->
-        <v-card class="mb-4">
-          <v-card-text class="d-flex flex-column ga-2">
-            <v-btn
-              v-if="canEdit"
-              color="primary"
-              variant="elevated"
-              block
-              prepend-icon="mdi-pencil"
-              :href="`/admin/leads/${lead.id}/edit`"
-            >
-              Edit Lead
-            </v-btn>
-            <v-btn
-              v-if="canDelete"
-              color="error"
-              variant="outlined"
-              block
-              prepend-icon="mdi-delete"
-              @click="deleteDialog = true"
-            >
-              Delete Lead
-            </v-btn>
-          </v-card-text>
-        </v-card>
-
-        <!-- Contact Person Card -->
-        <v-card v-if="person" class="mb-4">
-          <v-card-title>
-            <v-icon start>mdi-account</v-icon>
-            Contact Person
-          </v-card-title>
-          <v-card-text>
-            <div class="text-subtitle-1 font-weight-medium mb-1">{{ person.name }}</div>
-            <div v-if="person.job_title" class="text-body-2 text-medium-emphasis mb-3">
-              {{ person.job_title }}
-            </div>
-
-            <div v-if="personEmails.length" class="mb-2">
-              <div class="text-caption text-medium-emphasis mb-1">Email</div>
-              <div v-for="(email, i) in personEmails" :key="i" class="text-body-2">
-                <v-icon size="x-small" class="mr-1">mdi-email-outline</v-icon>
-                <a :href="`mailto:${email.value}`" class="text-decoration-none">{{ email.value }}</a>
-                <v-chip v-if="email.label" size="x-small" variant="outlined" class="ml-1">{{ email.label }}</v-chip>
-              </div>
-            </div>
-
-            <div v-if="personPhones.length" class="mb-2">
-              <div class="text-caption text-medium-emphasis mb-1">Phone</div>
-              <div v-for="(phone, i) in personPhones" :key="i" class="text-body-2">
-                <v-icon size="x-small" class="mr-1">mdi-phone-outline</v-icon>
-                <a :href="`tel:${phone.value}`" class="text-decoration-none">{{ phone.value }}</a>
-                <v-chip v-if="phone.label" size="x-small" variant="outlined" class="ml-1">{{ phone.label }}</v-chip>
-              </div>
-            </div>
-
-            <v-btn
-              variant="text"
-              size="small"
-              color="primary"
-              :href="`/admin/contacts/persons/${person.id}/edit`"
-              class="mt-2 px-0"
-            >
-              View Contact
-              <v-icon end size="small">mdi-arrow-right</v-icon>
-            </v-btn>
-          </v-card-text>
-        </v-card>
-
-        <!-- Tags Section -->
-        <v-card class="mb-4">
-          <v-card-title>
-            <v-icon start>mdi-tag-multiple</v-icon>
-            Tags
-          </v-card-title>
-          <v-card-text>
-            <div v-if="tags.length" class="d-flex flex-wrap ga-1">
+    <div class="lead-detail-layout d-flex ga-4" style="align-items: flex-start">
+      <!-- LEFT Sidebar (sticky) -->
+      <div class="lead-sidebar">
+        <v-card variant="outlined" class="lead-sidebar-card">
+          <!-- Tags Section -->
+          <div class="pa-4 border-b">
+            <div v-if="tags.length" class="d-flex flex-wrap ga-1 mb-2">
               <v-chip
                 v-for="tag in tags"
                 :key="tag.id"
@@ -408,13 +17,380 @@
                 {{ tag.name }}
               </v-chip>
             </div>
-            <div v-else class="text-body-2 text-medium-emphasis">
-              No tags
+            <div v-if="lead.rotten_days && lead.rotten_days > 0" class="mb-2">
+              <v-chip color="error" size="small" variant="tonal" prepend-icon="mdi-alert-circle">
+                Rotten for {{ lead.rotten_days }} day{{ lead.rotten_days === 1 ? '' : 's' }}
+              </v-chip>
             </div>
+
+            <!-- Title -->
+            <h3 class="font-weight-bold mb-1" style="font-size: 1.125rem; line-height: 1.4">{{ lead.title }}</h3>
+            <div v-if="lead.lead_value" class="text-body-2 text-success font-weight-medium mb-2">
+              ${{ Number(lead.lead_value).toLocaleString() }}
+            </div>
+
+            <!-- Activity Action Buttons -->
+            <div class="d-flex flex-wrap ga-2 mt-2">
+              <v-btn
+                v-if="canComposeMail"
+                size="small"
+                variant="tonal"
+                color="success"
+                prepend-icon="mdi-email"
+                :href="`/admin/mail/compose?lead_id=${lead.id}`"
+              >
+                Mail
+              </v-btn>
+              <v-btn
+                v-if="canCreateActivity"
+                size="small"
+                variant="tonal"
+                prepend-icon="mdi-file-plus"
+                :href="`/admin/activities/create?lead_id=${lead.id}&type=file`"
+              >
+                File
+              </v-btn>
+              <v-btn
+                v-if="canCreateActivity"
+                size="small"
+                variant="tonal"
+                color="warning"
+                prepend-icon="mdi-note-plus"
+                :href="`/admin/activities/create?lead_id=${lead.id}&type=note`"
+              >
+                Note
+              </v-btn>
+              <v-btn
+                v-if="canCreateActivity"
+                size="small"
+                variant="tonal"
+                color="info"
+                prepend-icon="mdi-calendar-plus"
+                :href="`/admin/activities/create?lead_id=${lead.id}&type=meeting`"
+              >
+                Activity
+              </v-btn>
+            </div>
+          </div>
+
+          <!-- Attributes Accordion -->
+          <div class="pa-4 border-b">
+            <v-expansion-panels variant="accordion" flat>
+              <v-expansion-panel>
+                <v-expansion-panel-title class="px-0 py-2">
+                  <div class="d-flex align-center w-100">
+                    <span class="text-subtitle-2 font-weight-medium">Attributes</span>
+                    <v-spacer />
+                    <v-btn
+                      v-if="canEdit"
+                      icon="mdi-pencil"
+                      size="x-small"
+                      variant="text"
+                      :href="`/admin/leads/${lead.id}/edit`"
+                      target="_blank"
+                      @click.stop
+                    />
+                  </div>
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  <div class="d-flex flex-column ga-3">
+                    <div>
+                      <div class="text-caption text-medium-emphasis">Value</div>
+                      <div class="text-body-2">{{ lead.lead_value ? `$${Number(lead.lead_value).toLocaleString()}` : '-' }}</div>
+                    </div>
+                    <div>
+                      <div class="text-caption text-medium-emphasis">Expected Close Date</div>
+                      <div class="text-body-2">{{ lead.expected_close_date ? formatDate(lead.expected_close_date) : '-' }}</div>
+                    </div>
+                    <div>
+                      <div class="text-caption text-medium-emphasis">Source</div>
+                      <div class="text-body-2">{{ sourceName || '-' }}</div>
+                    </div>
+                    <div>
+                      <div class="text-caption text-medium-emphasis">Type</div>
+                      <div class="text-body-2">{{ typeName || '-' }}</div>
+                    </div>
+                    <div>
+                      <div class="text-caption text-medium-emphasis">Pipeline</div>
+                      <div class="text-body-2">{{ pipelineName || '-' }}</div>
+                    </div>
+                    <div>
+                      <div class="text-caption text-medium-emphasis">Assigned To</div>
+                      <div class="text-body-2">{{ userName || '-' }}</div>
+                    </div>
+                    <div v-if="lead.closed_at">
+                      <div class="text-caption text-medium-emphasis">Closed At</div>
+                      <div class="text-body-2">{{ formatDateTime(lead.closed_at) }}</div>
+                    </div>
+                    <div v-if="lead.lost_reason">
+                      <div class="text-caption text-medium-emphasis">Lost Reason</div>
+                      <div class="text-body-2">{{ lead.lost_reason }}</div>
+                    </div>
+                    <div>
+                      <div class="text-caption text-medium-emphasis">Created</div>
+                      <div class="text-body-2">{{ formatDateTime(lead.created_at) }}</div>
+                    </div>
+                    <div>
+                      <div class="text-caption text-medium-emphasis">Updated</div>
+                      <div class="text-body-2">{{ formatDateTime(lead.updated_at) }}</div>
+                    </div>
+                  </div>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </div>
+
+          <!-- Contact Person -->
+          <div v-if="person" class="pa-4">
+            <div class="d-flex align-center mb-3">
+              <v-avatar color="primary" variant="tonal" size="36" class="mr-2">
+                <span class="text-body-2 font-weight-bold">
+                  {{ person.name ? person.name.charAt(0).toUpperCase() : '?' }}
+                </span>
+              </v-avatar>
+              <div style="min-width: 0">
+                <a :href="`/admin/contacts/persons/${person.id}`" class="text-body-2 font-weight-medium text-decoration-none d-block text-truncate">
+                  {{ person.name }}
+                </a>
+                <div v-if="person.job_title" class="text-caption text-medium-emphasis text-truncate">
+                  {{ person.job_title }}
+                </div>
+              </div>
+            </div>
+
+            <div v-if="personEmails.length" class="mb-2">
+              <div v-for="(email, i) in personEmails" :key="i" class="text-body-2 mb-1">
+                <v-icon size="x-small" class="mr-1">mdi-email-outline</v-icon>
+                <a :href="`mailto:${email.value}`" class="text-decoration-none">{{ email.value }}</a>
+              </div>
+            </div>
+
+            <div v-if="personPhones.length" class="mb-2">
+              <div v-for="(phone, i) in personPhones" :key="i" class="text-body-2 mb-1">
+                <v-icon size="x-small" class="mr-1">mdi-phone-outline</v-icon>
+                <a :href="`tel:${phone.value}`" class="text-decoration-none">{{ phone.value }}</a>
+              </div>
+            </div>
+
+            <!-- Organization -->
+            <div v-if="organization" class="mt-3 pt-3 border-t">
+              <div class="text-caption text-medium-emphasis mb-1">Organization</div>
+              <a :href="`/admin/contacts/organizations/${organization.id}`" class="text-body-2 font-weight-medium text-decoration-none">
+                {{ organization.name }}
+              </a>
+              <div v-if="organization.address" class="text-caption text-medium-emphasis mt-1">
+                {{ organization.address }}
+              </div>
+            </div>
+          </div>
+        </v-card>
+      </div>
+
+      <!-- RIGHT Content Area -->
+      <div class="lead-content" style="flex: 1; min-width: 0">
+        <!-- Stage Progress Bar (Krayin arrow style) -->
+        <v-card class="mb-4">
+          <v-card-text class="d-flex align-center flex-wrap ga-2 py-3 px-4">
+            <div class="stage-bar d-flex align-center">
+              <div
+                v-for="(stage, i) in stages"
+                :key="stage.id"
+                class="stage-item"
+                :class="{
+                  'stage-active': stage.id === lead.lead_pipeline_stage_id && lead.status === null,
+                  'stage-passed': lead.status === null && getStageOrder(stage.id) < getCurrentStageOrder(),
+                  'stage-won': lead.status === true,
+                  'stage-lost': lead.status === false && getStageOrder(stage.id) <= getCurrentStageOrder(),
+                  'stage-first': i === 0,
+                  'stage-last': i === stages.length - 1,
+                }"
+                @click="moveToStage(stage.id)"
+              >
+                <span class="stage-label">{{ stage.stage_name }}</span>
+              </div>
+            </div>
+
+            <v-divider vertical class="mx-2" />
+
+            <template v-if="lead.status === null">
+              <v-menu>
+                <template #activator="{ props: menuProps }">
+                  <v-btn
+                    v-bind="menuProps"
+                    size="small"
+                    variant="tonal"
+                    append-icon="mdi-chevron-down"
+                  >
+                    Won/Lost
+                  </v-btn>
+                </template>
+                <v-list density="compact">
+                  <v-list-item @click="markWon">
+                    <template #prepend>
+                      <v-icon color="success">mdi-trophy</v-icon>
+                    </template>
+                    <v-list-item-title>Won</v-list-item-title>
+                  </v-list-item>
+                  <v-list-item @click="showLostDialog = true">
+                    <template #prepend>
+                      <v-icon color="error">mdi-close-circle</v-icon>
+                    </template>
+                    <v-list-item-title>Lost</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+            </template>
+
+            <v-chip v-if="lead.status === true" color="success" variant="elevated">
+              <v-icon start size="small">mdi-trophy</v-icon>
+              Won
+            </v-chip>
+            <v-chip v-if="lead.status === false" color="error" variant="elevated">
+              <v-icon start size="small">mdi-close-circle</v-icon>
+              Lost
+            </v-chip>
           </v-card-text>
         </v-card>
-      </v-col>
-    </v-row>
+
+        <!-- Activity Timeline with Extra Tabs -->
+        <ActivityTimeline
+          :activities="activities"
+          :extra-tabs="extraTabs"
+        >
+          <!-- Description Tab -->
+          <template #description>
+            <div class="pa-4">
+              <div v-if="lead.description" class="text-body-1" style="white-space: pre-line">
+                {{ lead.description }}
+              </div>
+              <div v-else class="text-center py-8 text-medium-emphasis">
+                <v-icon size="48" color="grey-lighten-1" class="mb-2">mdi-text-box-outline</v-icon>
+                <div>No description</div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Products Tab -->
+          <template #products>
+            <div class="pa-4">
+              <div class="d-flex align-center mb-3">
+                <span class="text-subtitle-2 font-weight-medium">
+                  Products ({{ leadProducts.length }})
+                </span>
+                <v-spacer />
+                <v-btn
+                  v-if="canEdit"
+                  size="small"
+                  variant="text"
+                  prepend-icon="mdi-plus"
+                  @click="showAddProductDialog = true"
+                >
+                  Add Product
+                </v-btn>
+              </div>
+              <v-table v-if="leadProducts.length" density="compact">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Product</th>
+                    <th class="text-right">Price</th>
+                    <th class="text-right">Qty</th>
+                    <th class="text-right">Amount</th>
+                    <th v-if="canEdit" width="50"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="lp in leadProducts" :key="lp.id">
+                    <td class="text-caption">{{ lp.product_sku }}</td>
+                    <td>{{ lp.product_name }}</td>
+                    <td class="text-right">${{ Number(lp.price).toLocaleString() }}</td>
+                    <td class="text-right">{{ lp.quantity }}</td>
+                    <td class="text-right font-weight-medium">${{ Number(lp.amount).toLocaleString() }}</td>
+                    <td v-if="canEdit">
+                      <v-btn
+                        icon="mdi-close"
+                        size="x-small"
+                        variant="text"
+                        color="error"
+                        @click="removeProduct(lp.id)"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot v-if="leadProducts.length > 1">
+                  <tr>
+                    <td colspan="4" class="text-right font-weight-bold">Total</td>
+                    <td class="text-right font-weight-bold">${{ productsTotal }}</td>
+                    <td v-if="canEdit"></td>
+                  </tr>
+                </tfoot>
+              </v-table>
+              <div v-else class="text-center text-medium-emphasis py-8">
+                <v-icon size="48" color="grey-lighten-1" class="mb-2">mdi-package-variant</v-icon>
+                <div>No products attached</div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Quotes Tab -->
+          <template #quotes>
+            <div class="pa-4">
+              <div class="d-flex align-center mb-3">
+                <span class="text-subtitle-2 font-weight-medium">
+                  Quotes ({{ leadQuotes.length }})
+                </span>
+                <v-spacer />
+                <v-btn
+                  v-if="canEdit"
+                  size="small"
+                  variant="text"
+                  prepend-icon="mdi-plus"
+                  :href="`/admin/quotes/create?lead_id=${lead.id}`"
+                  class="mr-1"
+                >
+                  Create
+                </v-btn>
+                <v-btn
+                  v-if="canEdit"
+                  size="small"
+                  variant="text"
+                  prepend-icon="mdi-link-plus"
+                  @click="showLinkQuoteDialog = true"
+                >
+                  Link
+                </v-btn>
+              </div>
+              <v-list v-if="leadQuotes.length" density="compact">
+                <v-list-item
+                  v-for="q in leadQuotes"
+                  :key="q.id"
+                  :href="`/admin/quotes/${q.id}/edit`"
+                >
+                  <v-list-item-title>{{ q.subject }}</v-list-item-title>
+                  <v-list-item-subtitle>
+                    <span v-if="q.grand_total">Total: ${{ Number(q.grand_total).toLocaleString() }}</span>
+                    <span v-if="q.expired_at" class="ml-2">Expires: {{ formatDate(q.expired_at) }}</span>
+                  </v-list-item-subtitle>
+                  <template v-if="canEdit" #append>
+                    <v-btn
+                      icon="mdi-link-off"
+                      size="x-small"
+                      variant="text"
+                      color="error"
+                      @click.prevent="unlinkQuote(q.id)"
+                    />
+                  </template>
+                </v-list-item>
+              </v-list>
+              <div v-else class="text-center text-medium-emphasis py-8">
+                <v-icon size="48" color="grey-lighten-1" class="mb-2">mdi-file-document-outline</v-icon>
+                <div>No quotes linked</div>
+              </div>
+            </div>
+          </template>
+        </ActivityTimeline>
+      </div>
+    </div>
 
     <!-- Delete Confirmation Dialog -->
     <v-dialog v-model="deleteDialog" max-width="400">
@@ -550,11 +526,13 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { get, post, put, del } from "@/api/client";
+import ActivityTimeline from "@/components/admin/shared/ActivityTimeline.vue";
 
 const data = window.__INITIAL_DATA__ || {};
 
 const lead = data.lead || {};
 const person = data.person || null;
+const organization = data.organization || null;
 const activities: any[] = data.activities || [];
 const tags: any[] = data.tags || [];
 const stages: any[] = data.stages || [];
@@ -569,6 +547,14 @@ const leadQuotes = ref<any[]>(data.quotes || []);
 const permissions: string[] = data.permissions || [];
 const canEdit = computed(() => permissions.includes("leads.edit") || data.permission_type === "all");
 const canDelete = computed(() => permissions.includes("leads.delete") || data.permission_type === "all");
+const canComposeMail = computed(() => permissions.includes("mail.compose") || data.permission_type === "all");
+const canCreateActivity = computed(() => permissions.includes("activities.create") || data.permission_type === "all");
+
+const extraTabs = [
+  { name: "description", label: "Description" },
+  { name: "products", label: "Products" },
+  { name: "quotes", label: "Quotes" },
+];
 
 const productsTotal = computed(() => {
   const total = leadProducts.value.reduce((sum: number, lp: any) => sum + Number(lp.amount || 0), 0);
@@ -592,6 +578,16 @@ const personPhones = computed(() => {
   return person.contact_numbers;
 });
 
+// --- Stage helpers ---
+function getStageOrder(stageId: number): number {
+  const s = stages.find((st: any) => st.id === stageId);
+  return s?.sort_order ?? 999;
+}
+
+function getCurrentStageOrder(): number {
+  return getStageOrder(lead.lead_pipeline_stage_id);
+}
+
 // --- Formatters ---
 function formatDate(value: string): string {
   if (!value) return "-";
@@ -603,20 +599,20 @@ function formatDateTime(value: string): string {
   return new Date(value).toLocaleString();
 }
 
-function activityTypeColor(type: string): string {
-  switch (type) {
-    case "call": return "blue";
-    case "meeting": return "purple";
-    case "note": return "orange";
-    case "task": return "green";
-    case "email": return "indigo";
-    default: return "grey";
-  }
-}
+// --- Stage move (Krayin-aligned: auto won/lost on stage code) ---
+const pendingStageId = ref<number | null>(null);
 
-// --- Stage move ---
 async function moveToStage(stageId: number) {
   if (stageId === lead.lead_pipeline_stage_id) return;
+  const target = stages.find((s: any) => s.id === stageId);
+  if (!target) return;
+
+  if (target.stage_code === "lost") {
+    pendingStageId.value = stageId;
+    showLostDialog.value = true;
+    return;
+  }
+  // For 'won' or normal stages — proceed directly via update_stage
   try {
     await put(`/admin/api/leads/${lead.id}/stage`, { lead_pipeline_stage_id: stageId });
     window.location.reload();
@@ -635,7 +631,12 @@ const lostReason = ref("");
 async function markWon() {
   markingWon.value = true;
   try {
-    await put(`/admin/api/leads/${lead.id}/status`, { status: "won" });
+    const wonStage = stages.find((s: any) => s.stage_code === "won");
+    if (wonStage) {
+      await put(`/admin/api/leads/${lead.id}/stage`, { lead_pipeline_stage_id: wonStage.id });
+    } else {
+      await put(`/admin/api/leads/${lead.id}/status`, { status: "won" });
+    }
     window.location.reload();
   } catch (err: any) {
     errorMessage.value = err.message || "Failed to mark as won.";
@@ -648,16 +649,35 @@ async function markWon() {
 async function markLost() {
   markingLost.value = true;
   try {
-    await put(`/admin/api/leads/${lead.id}/status`, {
-      status: "lost",
-      lost_reason: lostReason.value || null,
-    });
+    const targetId = pendingStageId.value;
+    if (targetId) {
+      // Stage bar click path
+      await put(`/admin/api/leads/${lead.id}/stage`, {
+        lead_pipeline_stage_id: targetId,
+        lost_reason: lostReason.value || null,
+      });
+    } else {
+      // Dropdown path — find lost stage and use update_stage
+      const lostStage = stages.find((s: any) => s.stage_code === "lost");
+      if (lostStage) {
+        await put(`/admin/api/leads/${lead.id}/stage`, {
+          lead_pipeline_stage_id: lostStage.id,
+          lost_reason: lostReason.value || null,
+        });
+      } else {
+        await put(`/admin/api/leads/${lead.id}/status`, {
+          status: "lost",
+          lost_reason: lostReason.value || null,
+        });
+      }
+    }
     window.location.reload();
   } catch (err: any) {
     errorMessage.value = err.message || "Failed to mark as lost.";
     errorSnackbar.value = true;
   } finally {
     markingLost.value = false;
+    pendingStageId.value = null;
   }
 }
 
@@ -693,7 +713,6 @@ async function addProduct() {
     });
     showAddProductDialog.value = false;
     newProduct.value = { product_id: null, quantity: 1, price: 0 };
-    // Reload products
     const res = await get<{ data: any[] }>(`/admin/api/leads/${lead.id}/products`);
     leadProducts.value = res.data;
   } catch (err: any) {
@@ -791,3 +810,102 @@ async function doDelete() {
 const errorSnackbar = ref(false);
 const errorMessage = ref("");
 </script>
+
+<style scoped>
+.lead-detail-layout {
+  flex-wrap: wrap;
+}
+.lead-sidebar {
+  width: 394px;
+  min-width: 394px;
+  max-width: 394px;
+  flex-shrink: 0;
+}
+.lead-sidebar-card {
+  position: sticky;
+  top: 73px;
+  align-self: flex-start;
+}
+.border-b {
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.border-t {
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+/* Stage bar - Krayin arrow-connected style */
+.stage-bar {
+  gap: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.stage-item {
+  position: relative;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px 0 20px;
+  background: #E5E7EB;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%, 10px 50%);
+}
+.stage-item.stage-first {
+  padding-left: 12px;
+  border-radius: 4px 0 0 4px;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%);
+}
+.stage-item.stage-last {
+  border-radius: 0 4px 4px 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 10px 50%);
+}
+.stage-item.stage-first.stage-last {
+  clip-path: none;
+  border-radius: 4px;
+  padding-left: 12px;
+}
+.stage-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #4B5563;
+  position: relative;
+  z-index: 1;
+}
+.stage-item.stage-active {
+  background: #10B981;
+}
+.stage-item.stage-active .stage-label {
+  color: #fff;
+}
+.stage-item.stage-passed {
+  background: #6EE7B7;
+}
+.stage-item.stage-passed .stage-label {
+  color: #065F46;
+}
+.stage-item.stage-won {
+  background: #10B981;
+}
+.stage-item.stage-won .stage-label {
+  color: #fff;
+}
+.stage-item.stage-lost {
+  background: #EF4444;
+}
+.stage-item.stage-lost .stage-label {
+  color: #fff;
+}
+.stage-item:hover {
+  filter: brightness(0.95);
+}
+@media (max-width: 960px) {
+  .lead-sidebar {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+  .lead-sidebar-card {
+    position: static;
+  }
+}
+</style>

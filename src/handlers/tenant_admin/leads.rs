@@ -7,6 +7,7 @@ use crate::db::Database;
 use crate::middleware::csrf::get_csrf_token;
 use crate::models::company::Company;
 use crate::models::lead::LeadRow;
+use crate::models::organization::Organization;
 use crate::models::pipeline::{LeadPipeline, LeadSource, LeadType, PipelineStageDetail};
 use crate::models::tenant_admin::TenantUser;
 use crate::views::tenant_admin::{LeadCreate, LeadEdit, LeadIndex, LeadKanbanView, LeadShow};
@@ -471,11 +472,26 @@ pub async fn show(
         .await
         .unwrap_or_default();
 
+    // Organization (via person)
+    let org: Option<Organization> = if let Some(oid) = person.as_ref().and_then(|p| p.organization_id) {
+        guard
+            .fetch_optional(
+                sqlx::query_as::<_, Organization>("SELECT * FROM organizations WHERE id = $1")
+                    .bind(oid),
+            )
+            .await
+            .ok()
+            .flatten()
+    } else {
+        None
+    };
+
     let _ = guard.release().await;
 
     let initial_data = serde_json::json!({
         "lead": lead,
         "person": person,
+        "organization": org,
         "user_name": user_name,
         "source_name": source_name,
         "type_name": type_name,

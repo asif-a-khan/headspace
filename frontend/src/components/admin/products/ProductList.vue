@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h5">Products</h1>
+      <h1 class="text-h5 font-weight-bold">Products</h1>
       <v-spacer />
       <v-btn
         variant="outlined"

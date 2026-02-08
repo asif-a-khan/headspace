@@ -9,21 +9,21 @@
             v-model="form.sku"
             label="SKU"
             :rules="[rules.required]"
-            class="mb-3"
+            class="mb-4"
           />
 
           <v-text-field
             v-model="form.name"
             label="Name"
             :rules="[rules.required]"
-            class="mb-3"
+            class="mb-4"
           />
 
           <v-textarea
             v-model="form.description"
             label="Description"
             rows="3"
-            class="mb-3"
+            class="mb-4"
           />
 
           <div class="d-flex ga-3 mb-3">
@@ -45,7 +45,7 @@
         </v-form>
       </v-card-text>
       <v-card-actions class="px-4 pb-4">
-        <v-btn href="/admin/products" variant="text">Cancel</v-btn>
+        <v-btn href="/admin/products" variant="outlined">Cancel</v-btn>
         <v-spacer />
         <v-btn color="primary" :loading="saving" @click="submit">
           {{ isEdit ? "Update" : "Create" }}

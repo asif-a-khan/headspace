@@ -8,7 +8,7 @@
           <v-text-field
             v-model="form.title"
             label="Title"
-            class="mb-3"
+            class="mb-4"
           />
 
           <v-select
@@ -16,20 +16,20 @@
             :items="activityTypes"
             label="Type"
             :rules="[rules.required]"
-            class="mb-3"
+            class="mb-4"
           />
 
           <v-textarea
             v-model="form.comment"
             label="Comment / Notes"
             rows="3"
-            class="mb-3"
+            class="mb-4"
           />
 
           <v-text-field
             v-model="form.location"
             label="Location"
-            class="mb-3"
+            class="mb-4"
           />
 
           <div class="d-flex ga-3 mb-3">
@@ -55,7 +55,7 @@
             multiple
             chips
             closable-chips
-            class="mb-3"
+            class="mb-4"
           />
 
           <!-- Participant Persons (search) -->
@@ -68,7 +68,7 @@
             multiple
             chips
             closable-chips
-            class="mb-3"
+            class="mb-4"
             return-object
             :loading="personSearching"
             @update:search="onPersonSearch"
@@ -86,7 +86,7 @@
             multiple
             chips
             closable-chips
-            class="mb-3"
+            class="mb-4"
             return-object
             :loading="leadSearching"
             @update:search="onLeadSearch"
@@ -97,13 +97,13 @@
           <v-checkbox
             v-model="form.is_done"
             label="Mark as done"
-            class="mb-3"
+            class="mb-4"
           />
 
           <!-- File Attachments (edit mode) -->
           <template v-if="isEdit">
             <div class="text-subtitle-2 mb-2">Attachments</div>
-            <div v-if="files.length" class="mb-3">
+            <div v-if="files.length" class="mb-4">
               <v-chip
                 v-for="f in files"
                 :key="f.id"
@@ -124,7 +124,7 @@
               multiple
               prepend-icon="mdi-paperclip"
               show-size
-              class="mb-3"
+              class="mb-4"
               :loading="uploading"
             />
             <v-btn
@@ -133,7 +133,7 @@
               size="small"
               color="primary"
               :loading="uploading"
-              class="mb-3"
+              class="mb-4"
               @click="uploadFiles"
             >
               Upload {{ newFiles.length }} file{{ newFiles.length === 1 ? '' : 's' }}
@@ -142,7 +142,7 @@
         </v-form>
       </v-card-text>
       <v-card-actions class="px-4 pb-4">
-        <v-btn href="/admin/activities" variant="text">Cancel</v-btn>
+        <v-btn href="/admin/activities" variant="outlined">Cancel</v-btn>
         <v-spacer />
         <v-btn color="primary" :loading="saving" @click="submit">
           {{ isEdit ? "Update" : "Create" }}

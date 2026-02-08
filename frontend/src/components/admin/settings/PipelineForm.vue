@@ -39,6 +39,7 @@
                       hide-details
                       variant="underlined"
                       placeholder="Stage name"
+                      :readonly="!isEdit && isSystemStage(ps)"
                     />
                   </td>
                   <td>
@@ -53,7 +54,7 @@
                     />
                   </td>
                   <td>
-                    <v-btn icon="mdi-close" size="x-small" variant="text" color="error" @click="removeStage(idx)" />
+                    <v-btn v-if="isEdit || !isSystemStage(ps)" icon="mdi-close" size="x-small" variant="text" color="error" @click="removeStage(idx)" />
                   </td>
                 </tr>
               </tbody>
@@ -67,7 +68,7 @@
             <v-btn type="submit" color="primary" :loading="loading">
               {{ isEdit ? "Update" : "Create" }}
             </v-btn>
-            <v-btn href="/admin/settings/pipelines" variant="text">Cancel</v-btn>
+            <v-btn href="/admin/settings/pipelines" variant="outlined">Cancel</v-btn>
           </div>
         </v-form>
       </v-card-text>
@@ -89,13 +90,19 @@ interface FormStage {
   name: string;
   probability: number;
   sort_order: number;
+  stage_code?: string;
+}
+
+function isSystemStage(s: FormStage): boolean {
+  return s.stage_code === "won" || s.stage_code === "lost";
 }
 
 const existingStages: FormStage[] = (data.pipeline_stages || []).map(
-  (ps: { stage_name: string; probability: number; sort_order: number }) => ({
+  (ps: { stage_name: string; probability: number; sort_order: number; stage_code?: string }) => ({
     name: ps.stage_name,
     probability: ps.probability,
     sort_order: ps.sort_order,
+    stage_code: ps.stage_code || undefined,
   }),
 );
 

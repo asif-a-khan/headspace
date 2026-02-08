@@ -1,6 +1,7 @@
 use axum::extract::{Extension, Query};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::auth::bouncer::bouncer;
@@ -74,6 +75,16 @@ struct TopPerson {
     total_leads: Option<i64>,
 }
 
+fn compute_progress(current: f64, previous: f64) -> f64 {
+    if previous > 0.0 {
+        ((current - previous) / previous) * 100.0
+    } else if current > 0.0 {
+        100.0
+    } else {
+        0.0
+    }
+}
+
 pub async fn stats(
     Extension(db): Extension<Database>,
     Extension(company): Extension<Company>,
@@ -95,36 +106,41 @@ pub async fn stats(
     let vp = view_permission_filter(user.id, &user.view_permission);
     let vp_lead = vp.replace("t.user_id", "l.user_id");
 
-    // Build date filter clause for leads.created_at
-    let date_clause = match (&filter.start, &filter.end) {
-        (Some(s), Some(e)) => format!(" AND l.created_at >= '{s}'::date AND l.created_at < ('{e}'::date + interval '1 day')"),
-        (Some(s), None) => format!(" AND l.created_at >= '{s}'::date"),
-        (None, Some(e)) => format!(" AND l.created_at < ('{e}'::date + interval '1 day')"),
-        (None, None) => String::new(),
-    };
+    // Parse dates for current and previous periods
+    let today = chrono::Utc::now().date_naive();
+    let start_date = filter
+        .start
+        .as_ref()
+        .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
+        .unwrap_or_else(|| today - chrono::Duration::days(30));
+    let end_date = filter
+        .end
+        .as_ref()
+        .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
+        .unwrap_or(today);
 
-    // Total leads
+    let period_days = (end_date - start_date).num_days().max(1);
+    let prev_end = start_date - chrono::Duration::days(1);
+    let prev_start = prev_end - chrono::Duration::days(period_days - 1);
+
+    let start_str = start_date.format("%Y-%m-%d").to_string();
+    let end_str = end_date.format("%Y-%m-%d").to_string();
+    let prev_start_str = prev_start.format("%Y-%m-%d").to_string();
+    let prev_end_str = prev_end.format("%Y-%m-%d").to_string();
+
+    // Build date filter clauses
+    let date_clause = format!(
+        " AND l.created_at >= '{start_str}'::date AND l.created_at < ('{end_str}'::date + interval '1 day')"
+    );
+    let prev_date_clause = format!(
+        " AND l.created_at >= '{prev_start_str}'::date AND l.created_at < ('{prev_end_str}'::date + interval '1 day')"
+    );
+
+    // --- Current period KPIs ---
+
     let total_leads = guard
         .fetch_one(sqlx::query_as::<_, CountRow>(&format!(
             "SELECT COUNT(*) AS count FROM leads l WHERE true{vp_lead}{date_clause}"
-        )))
-        .await
-        .map(|r| r.count.unwrap_or(0))
-        .unwrap_or(0);
-
-    // Open leads (status IS NULL)
-    let open_leads = guard
-        .fetch_one(sqlx::query_as::<_, CountRow>(&format!(
-            "SELECT COUNT(*) AS count FROM leads l WHERE l.status IS NULL{vp_lead}{date_clause}"
-        )))
-        .await
-        .map(|r| r.count.unwrap_or(0))
-        .unwrap_or(0);
-
-    // Won deals count and value
-    let won_count = guard
-        .fetch_one(sqlx::query_as::<_, CountRow>(&format!(
-            "SELECT COUNT(*) AS count FROM leads l WHERE l.status = true{vp_lead}{date_clause}"
         )))
         .await
         .map(|r| r.count.unwrap_or(0))
@@ -135,45 +151,25 @@ pub async fn stats(
             "SELECT COALESCE(SUM(l.lead_value), 0) AS total FROM leads l WHERE l.status = true{vp_lead}{date_clause}"
         )))
         .await
-        .map(|r| r.total)
-        .unwrap_or(None);
-
-    // Lost deals count and value
-    let lost_count = guard
-        .fetch_one(sqlx::query_as::<_, CountRow>(&format!(
-            "SELECT COUNT(*) AS count FROM leads l WHERE l.status = false{vp_lead}{date_clause}"
-        )))
-        .await
-        .map(|r| r.count.unwrap_or(0))
-        .unwrap_or(0);
+        .map(|r| r.total.map(|d| d.to_string()).unwrap_or_else(|| "0".to_string()))
+        .unwrap_or_else(|_| "0".to_string());
 
     let lost_value = guard
         .fetch_one(sqlx::query_as::<_, SumRow>(&format!(
             "SELECT COALESCE(SUM(l.lead_value), 0) AS total FROM leads l WHERE l.status = false{vp_lead}{date_clause}"
         )))
         .await
-        .map(|r| r.total)
-        .unwrap_or(None);
+        .map(|r| r.total.map(|d| d.to_string()).unwrap_or_else(|| "0".to_string()))
+        .unwrap_or_else(|_| "0".to_string());
 
-    // Open revenue
-    let open_revenue = guard
-        .fetch_one(sqlx::query_as::<_, SumRow>(&format!(
-            "SELECT COALESCE(SUM(l.lead_value), 0) AS total FROM leads l WHERE l.status IS NULL{vp_lead}{date_clause}"
-        )))
-        .await
-        .map(|r| r.total)
-        .unwrap_or(None);
-
-    // Average lead value
     let avg_lead_value = guard
         .fetch_one(sqlx::query_as::<_, AvgRow>(&format!(
             "SELECT AVG(l.lead_value) AS avg FROM leads l WHERE l.lead_value > 0{vp_lead}{date_clause}"
         )))
         .await
-        .map(|r| r.avg)
-        .unwrap_or(None);
+        .map(|r| r.avg.map(|d| d.to_string()).unwrap_or_else(|| "0".to_string()))
+        .unwrap_or_else(|_| "0".to_string());
 
-    // Total quotes
     let total_quotes = guard
         .fetch_one(sqlx::query_as::<_, CountRow>(
             "SELECT COUNT(*) AS count FROM quotes",
@@ -182,7 +178,6 @@ pub async fn stats(
         .map(|r| r.count.unwrap_or(0))
         .unwrap_or(0);
 
-    // Total persons
     let total_persons = guard
         .fetch_one(sqlx::query_as::<_, CountRow>(
             "SELECT COUNT(*) AS count FROM persons",
@@ -191,7 +186,6 @@ pub async fn stats(
         .map(|r| r.count.unwrap_or(0))
         .unwrap_or(0);
 
-    // Total organizations
     let total_organizations = guard
         .fetch_one(sqlx::query_as::<_, CountRow>(
             "SELECT COUNT(*) AS count FROM organizations",
@@ -200,16 +194,73 @@ pub async fn stats(
         .map(|r| r.count.unwrap_or(0))
         .unwrap_or(0);
 
-    // Activities due today
-    let activities_due = guard
-        .fetch_one(sqlx::query_as::<_, CountRow>(
-            "SELECT COUNT(*) AS count FROM activities
-             WHERE is_done = false AND schedule_from IS NOT NULL
-               AND schedule_from::date = CURRENT_DATE",
-        ))
+    // --- Previous period KPIs ---
+
+    let prev_total_leads = guard
+        .fetch_one(sqlx::query_as::<_, CountRow>(&format!(
+            "SELECT COUNT(*) AS count FROM leads l WHERE true{vp_lead}{prev_date_clause}"
+        )))
         .await
         .map(|r| r.count.unwrap_or(0))
         .unwrap_or(0);
+
+    let prev_won_value: f64 = guard
+        .fetch_one(sqlx::query_as::<_, SumRow>(&format!(
+            "SELECT COALESCE(SUM(l.lead_value), 0) AS total FROM leads l WHERE l.status = true{vp_lead}{prev_date_clause}"
+        )))
+        .await
+        .map(|r| r.total.map(|d| d.to_string().parse::<f64>().unwrap_or(0.0)).unwrap_or(0.0))
+        .unwrap_or(0.0);
+
+    let prev_lost_value: f64 = guard
+        .fetch_one(sqlx::query_as::<_, SumRow>(&format!(
+            "SELECT COALESCE(SUM(l.lead_value), 0) AS total FROM leads l WHERE l.status = false{vp_lead}{prev_date_clause}"
+        )))
+        .await
+        .map(|r| r.total.map(|d| d.to_string().parse::<f64>().unwrap_or(0.0)).unwrap_or(0.0))
+        .unwrap_or(0.0);
+
+    let prev_avg_lead_value: f64 = guard
+        .fetch_one(sqlx::query_as::<_, AvgRow>(&format!(
+            "SELECT AVG(l.lead_value) AS avg FROM leads l WHERE l.lead_value > 0{vp_lead}{prev_date_clause}"
+        )))
+        .await
+        .map(|r| r.avg.map(|d| d.to_string().parse::<f64>().unwrap_or(0.0)).unwrap_or(0.0))
+        .unwrap_or(0.0);
+
+    let prev_total_quotes = guard
+        .fetch_one(sqlx::query_as::<_, CountRow>(&format!(
+            "SELECT COUNT(*) AS count FROM quotes WHERE created_at >= '{prev_start_str}'::date AND created_at < ('{prev_end_str}'::date + interval '1 day')"
+        )))
+        .await
+        .map(|r| r.count.unwrap_or(0))
+        .unwrap_or(0);
+
+    let prev_total_persons = guard
+        .fetch_one(sqlx::query_as::<_, CountRow>(&format!(
+            "SELECT COUNT(*) AS count FROM persons WHERE created_at >= '{prev_start_str}'::date AND created_at < ('{prev_end_str}'::date + interval '1 day')"
+        )))
+        .await
+        .map(|r| r.count.unwrap_or(0))
+        .unwrap_or(0);
+
+    let prev_total_organizations = guard
+        .fetch_one(sqlx::query_as::<_, CountRow>(&format!(
+            "SELECT COUNT(*) AS count FROM organizations WHERE created_at >= '{prev_start_str}'::date AND created_at < ('{prev_end_str}'::date + interval '1 day')"
+        )))
+        .await
+        .map(|r| r.count.unwrap_or(0))
+        .unwrap_or(0);
+
+    // Compute progress percentages
+    let won_val_f: f64 = won_value.parse().unwrap_or(0.0);
+    let lost_val_f: f64 = lost_value.parse().unwrap_or(0.0);
+    let avg_val_f: f64 = avg_lead_value.parse().unwrap_or(0.0);
+
+    let avg_leads_per_day = total_leads as f64 / period_days as f64;
+    let prev_avg_leads_per_day = prev_total_leads as f64 / period_days as f64;
+
+    // --- Chart data (unchanged) ---
 
     // Leads by stage (pipeline funnel)
     let leads_by_stage = guard
@@ -301,16 +352,44 @@ pub async fn stats(
     let _ = guard.release().await;
 
     Json(serde_json::json!({
-        "total_leads": total_leads,
-        "open_leads": open_leads,
-        "won_deals": { "count": won_count, "value": won_value },
-        "lost_deals": { "count": lost_count, "value": lost_value },
-        "open_revenue": open_revenue,
-        "avg_lead_value": avg_lead_value,
-        "total_quotes": total_quotes,
-        "total_persons": total_persons,
-        "total_organizations": total_organizations,
-        "activities_due": activities_due,
+        "total_leads": {
+            "current": total_leads,
+            "previous": prev_total_leads,
+            "progress": compute_progress(total_leads as f64, prev_total_leads as f64),
+        },
+        "avg_lead_value": {
+            "current": avg_lead_value,
+            "previous": prev_avg_lead_value,
+            "progress": compute_progress(avg_val_f, prev_avg_lead_value),
+        },
+        "avg_leads_per_day": {
+            "current": format!("{:.1}", avg_leads_per_day),
+            "previous": format!("{:.1}", prev_avg_leads_per_day),
+            "progress": compute_progress(avg_leads_per_day, prev_avg_leads_per_day),
+        },
+        "total_quotations": {
+            "current": total_quotes,
+            "previous": prev_total_quotes,
+            "progress": compute_progress(total_quotes as f64, prev_total_quotes as f64),
+        },
+        "total_persons": {
+            "current": total_persons,
+            "previous": prev_total_persons,
+            "progress": compute_progress(total_persons as f64, prev_total_persons as f64),
+        },
+        "total_organizations": {
+            "current": total_organizations,
+            "previous": prev_total_organizations,
+            "progress": compute_progress(total_organizations as f64, prev_total_organizations as f64),
+        },
+        "won_revenue": {
+            "current": won_value,
+            "progress": compute_progress(won_val_f, prev_won_value),
+        },
+        "lost_revenue": {
+            "current": lost_value,
+            "progress": compute_progress(lost_val_f, prev_lost_value),
+        },
         "leads_by_stage": leads_by_stage,
         "revenue_by_source": revenue_by_source,
         "revenue_by_type": revenue_by_type,

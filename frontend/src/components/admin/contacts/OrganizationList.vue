@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h5">Organizations</h1>
+      <h1 class="text-h5 font-weight-bold">Organizations</h1>
       <v-spacer />
       <v-btn
         variant="outlined"
@@ -48,7 +48,18 @@
       item-value="id"
       :show-select="canDelete"
     >
+      <template #item.name="{ item }">
+        <a :href="`/admin/contacts/organizations/${item.id}`" class="text-decoration-none font-weight-medium">
+          {{ item.name }}
+        </a>
+      </template>
       <template #item.actions="{ item }">
+        <v-btn
+          icon="mdi-eye"
+          size="small"
+          variant="text"
+          :href="`/admin/contacts/organizations/${item.id}`"
+        />
         <v-btn
           v-if="canEdit"
           icon="mdi-pencil"

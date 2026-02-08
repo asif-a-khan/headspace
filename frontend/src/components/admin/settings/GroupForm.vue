@@ -13,7 +13,7 @@
             <v-btn type="submit" color="primary" :loading="loading">
               {{ isEdit ? "Update" : "Create" }}
             </v-btn>
-            <v-btn href="/admin/settings/groups" variant="text">Cancel</v-btn>
+            <v-btn href="/admin/settings/groups" variant="outlined">Cancel</v-btn>
           </div>
         </v-form>
       </v-card-text>

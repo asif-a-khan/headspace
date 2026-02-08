@@ -115,10 +115,10 @@ export const useLeadsStore = defineStore("admin-leads", () => {
     return put<{ data: Lead }>(`/admin/api/leads/${id}`, form);
   }
 
-  async function moveToStage(id: number, stageId: number) {
-    return put<{ data: Lead }>(`/admin/api/leads/${id}/stage`, {
-      lead_pipeline_stage_id: stageId,
-    });
+  async function moveToStage(id: number, stageId: number, lostReason?: string | null) {
+    const payload: Record<string, unknown> = { lead_pipeline_stage_id: stageId };
+    if (lostReason != null) payload.lost_reason = lostReason;
+    return put<{ data: Lead }>(`/admin/api/leads/${id}/stage`, payload);
   }
 
   async function remove(id: number) {

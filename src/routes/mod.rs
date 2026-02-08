@@ -133,11 +133,11 @@ fn tenant_admin_protected_routes() -> Router {
         .route("/admin/products/create", get(handlers::tenant_admin::products::create))
         .route("/admin/products/{id}/edit", get(handlers::tenant_admin::products::edit))
         // Lead pages
-        .route("/admin/leads", get(handlers::tenant_admin::leads::index))
+        .route("/admin/leads", get(handlers::tenant_admin::leads::kanban_page))
+        .route("/admin/leads/list", get(handlers::tenant_admin::leads::index))
         .route("/admin/leads/create", get(handlers::tenant_admin::leads::create))
         .route("/admin/leads/{id}", get(handlers::tenant_admin::leads::show))
         .route("/admin/leads/{id}/edit", get(handlers::tenant_admin::leads::edit))
-        .route("/admin/leads/kanban", get(handlers::tenant_admin::leads::kanban_page))
         // Mail page
         .route("/admin/mail", get(handlers::tenant_admin::emails::index))
         // Contact pages
@@ -147,6 +147,7 @@ fn tenant_admin_protected_routes() -> Router {
         .route("/admin/contacts/persons/{id}/edit", get(handlers::tenant_admin::contacts::persons_edit))
         .route("/admin/contacts/organizations", get(handlers::tenant_admin::contacts::organizations_index))
         .route("/admin/contacts/organizations/create", get(handlers::tenant_admin::contacts::organizations_create))
+        .route("/admin/contacts/organizations/{id}", get(handlers::tenant_admin::contacts::organizations_show))
         .route("/admin/contacts/organizations/{id}/edit", get(handlers::tenant_admin::contacts::organizations_edit))
         // Account API routes
         .route("/admin/api/account", get(api::tenant_admin::account::show).put(api::tenant_admin::account::update))

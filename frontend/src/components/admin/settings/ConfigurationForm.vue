@@ -15,7 +15,7 @@
               label="Currency Symbol"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-select
               v-model="config['general.date_format']"
@@ -25,7 +25,7 @@
               label="Date Format"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-select
               v-model="config['general.timezone']"
@@ -33,7 +33,7 @@
               label="Timezone"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-select
               v-model="config['general.locale']"
@@ -52,7 +52,7 @@
         <v-card>
           <v-card-title>Appearance</v-card-title>
           <v-card-text>
-            <div class="mb-3">
+            <div class="mb-4">
               <label class="text-body-2 d-block mb-1">Brand Color</label>
               <div class="d-flex align-center ga-3">
                 <v-text-field
@@ -104,7 +104,7 @@
               placeholder="smtp.gmail.com"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-text-field
               v-model="config['email.smtp.port']"
@@ -112,7 +112,7 @@
               placeholder="587"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-select
               v-model="config['email.smtp.encryption']"
@@ -120,14 +120,14 @@
               label="Encryption"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-text-field
               v-model="config['email.smtp.username']"
               label="Username"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-text-field
               v-model="config['email.smtp.password']"
@@ -135,7 +135,7 @@
               type="password"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-text-field
               v-model="config['email.smtp.from_address']"
@@ -143,7 +143,7 @@
               placeholder="no-reply@example.com"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-text-field
               v-model="config['email.smtp.from_name']"
@@ -166,7 +166,7 @@
               placeholder="imap.gmail.com"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-text-field
               v-model="config['email.imap.port']"
@@ -174,7 +174,7 @@
               placeholder="993"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-select
               v-model="config['email.imap.encryption']"
@@ -182,14 +182,14 @@
               label="Encryption"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-text-field
               v-model="config['email.imap.username']"
               label="Username"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-text-field
               v-model="config['email.imap.password']"

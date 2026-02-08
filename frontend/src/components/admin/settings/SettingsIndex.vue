@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1 class="text-h5 mb-6">Settings</h1>
+    <h1 class="text-h5 font-weight-bold mb-6">Settings</h1>
 
     <div v-for="(category, idx) in categories" :key="category.title" :class="{ 'mt-8': idx > 0 }">
       <div class="mb-3">

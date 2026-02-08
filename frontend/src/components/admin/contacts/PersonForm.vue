@@ -9,13 +9,13 @@
             v-model="form.name"
             label="Name"
             :rules="[rules.required]"
-            class="mb-3"
+            class="mb-4"
           />
 
           <v-text-field
             v-model="form.job_title"
             label="Job Title"
-            class="mb-3"
+            class="mb-4"
           />
 
           <v-select
@@ -25,7 +25,7 @@
             item-value="id"
             label="Organization"
             clearable
-            class="mb-3"
+            class="mb-4"
           />
 
           <v-select
@@ -35,11 +35,11 @@
             item-value="id"
             label="Assigned To"
             clearable
-            class="mb-3"
+            class="mb-4"
           />
 
           <!-- Emails -->
-          <div class="mb-3">
+          <div class="mb-4">
             <div class="text-subtitle-2 mb-1">Emails</div>
             <div v-for="(email, i) in form.emails" :key="i" class="d-flex align-center mb-2">
               <v-text-field
@@ -66,7 +66,7 @@
           </div>
 
           <!-- Contact Numbers -->
-          <div class="mb-3">
+          <div class="mb-4">
             <div class="text-subtitle-2 mb-1">Phone Numbers</div>
             <div v-for="(phone, i) in form.contact_numbers" :key="i" class="d-flex align-center mb-2">
               <v-text-field
@@ -93,7 +93,7 @@
         </v-form>
       </v-card-text>
       <v-card-actions class="px-4 pb-4">
-        <v-btn href="/admin/contacts/persons" variant="text">Cancel</v-btn>
+        <v-btn href="/admin/contacts/persons" variant="outlined">Cancel</v-btn>
         <v-spacer />
         <v-btn color="primary" :loading="saving" @click="submit">
           {{ isEdit ? "Update" : "Create" }}

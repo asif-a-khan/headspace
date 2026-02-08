@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h5">Activities</h1>
+      <h1 class="text-h5 font-weight-bold">Activities</h1>
       <v-spacer />
       <v-btn-toggle v-model="viewMode" mandatory density="compact" class="mr-3">
         <v-btn value="table" size="small">
@@ -171,6 +171,7 @@
 import { ref, computed } from "vue";
 import { useActivitiesStore, type Activity } from "@/stores/admin/activities";
 import { post } from "@/api/client";
+import { activityTypeColors } from "@/utils/activityColors";
 
 const data = window.__INITIAL_DATA__ || {};
 const permissions: string[] = data.permissions || [];
@@ -184,13 +185,7 @@ store.hydrate(data);
 const viewMode = ref("table");
 
 function typeColor(type: string): string {
-  switch (type) {
-    case "call": return "blue";
-    case "meeting": return "purple";
-    case "note": return "orange";
-    case "task": return "green";
-    default: return "grey";
-  }
+  return activityTypeColors[type] || "#E0E0E0";
 }
 
 const headers = [

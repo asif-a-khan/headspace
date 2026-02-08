@@ -26,8 +26,14 @@ build-frontend:
 run:
     cargo run
 
-# Build frontend then run app
-dev: build-frontend run
+# Build frontend then run app (one-shot)
+start: build-frontend run
+
+# Run backend (cargo watch) + frontend (vite watch) in parallel with auto-reload
+dev:
+    cargo watch -c -w src -x run &
+    cd frontend && npm run watch &
+    wait
 
 # Check both Rust and frontend compile
 check:

@@ -1,6 +1,7 @@
 import { createApp, h, type Component } from "vue";
 import { createPinia } from "pinia";
 import vuetify from "./plugins/vuetify";
+import "./assets/krayin-overrides.css";
 
 // Layouts (eagerly loaded — shared across all pages)
 import SuperAdminLayout from "./layouts/SuperAdminLayout.vue";
@@ -59,6 +60,7 @@ const pages: Record<string, { layout: Component; component: LazyComponent }> = {
   "admin-person-detail": { layout: TenantAdminLayout, component: () => import("./components/admin/contacts/PersonDetail.vue") },
   "admin-organization-list": { layout: TenantAdminLayout, component: () => import("./components/admin/contacts/OrganizationList.vue") },
   "admin-organization-form": { layout: TenantAdminLayout, component: () => import("./components/admin/contacts/OrganizationForm.vue") },
+  "admin-organization-detail": { layout: TenantAdminLayout, component: () => import("./components/admin/contacts/OrganizationDetail.vue") },
   "admin-account": { layout: TenantAdminLayout, component: () => import("./components/admin/AccountForm.vue") },
   "admin-email": { layout: TenantAdminLayout, component: () => import("./components/admin/EmailClient.vue") },
 };

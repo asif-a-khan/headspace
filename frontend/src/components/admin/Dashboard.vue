@@ -31,324 +31,274 @@
       </div>
     </div>
 
-    <!-- Stat Cards Row 1 -->
-    <v-row class="mb-2">
-      <v-col cols="12" sm="6" md="3">
-        <v-card rounded="lg" elevation="0">
+    <!-- Two-column layout matching Krayin -->
+    <div class="dashboard-layout d-flex ga-4" style="align-items: flex-start">
+      <!-- LEFT Column (main content) -->
+      <div style="flex: 1; min-width: 0">
+        <!-- Revenue Stats Card -->
+        <v-card  class="mb-4">
           <v-card-text class="pa-5">
+            <!-- Won Revenue Bar -->
+            <div class="d-flex align-center mb-4">
+              <div style="width: 120px" class="text-body-2 font-weight-medium">Won Revenue</div>
+              <div style="flex: 1" class="mx-3">
+                <div
+                  class="revenue-bar rounded"
+                  :style="{ width: wonBarWidth + '%', backgroundColor: '#10B981', minWidth: '4px' }"
+                />
+              </div>
+              <div style="width: 140px" class="text-right">
+                <span class="text-body-1 font-weight-bold" style="color: #059669">${{ fmtNum(stats.won_revenue?.current) }}</span>
+                <div class="d-flex align-center justify-end">
+                  <v-icon
+                    v-if="stats.won_revenue?.progress !== 0"
+                    :color="(stats.won_revenue?.progress || 0) >= 0 ? 'success' : 'error'"
+                    size="14"
+                    class="mr-1"
+                  >
+                    {{ (stats.won_revenue?.progress || 0) >= 0 ? 'mdi-trending-up' : 'mdi-trending-down' }}
+                  </v-icon>
+                  <span
+                    class="text-caption"
+                    :class="(stats.won_revenue?.progress || 0) >= 0 ? 'text-success' : 'text-error'"
+                  >
+                    {{ formatProgress(stats.won_revenue?.progress) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <!-- Lost Revenue Bar -->
             <div class="d-flex align-center">
-              <v-avatar color="primary" size="40" class="mr-3">
-                <v-icon color="white">mdi-filter-variant</v-icon>
-              </v-avatar>
-              <div>
-                <p class="text-h6 font-weight-bold">{{ stats.total_leads }}</p>
-                <p class="text-body-2 text-secondary">Total Leads</p>
+              <div style="width: 120px" class="text-body-2 font-weight-medium">Lost Revenue</div>
+              <div style="flex: 1" class="mx-3">
+                <div
+                  class="revenue-bar rounded"
+                  :style="{ width: lostBarWidth + '%', backgroundColor: '#EF4444', minWidth: '4px' }"
+                />
+              </div>
+              <div style="width: 140px" class="text-right">
+                <span class="text-body-1 font-weight-bold text-error">${{ fmtNum(stats.lost_revenue?.current) }}</span>
+                <div class="d-flex align-center justify-end">
+                  <v-icon
+                    v-if="stats.lost_revenue?.progress !== 0"
+                    :color="(stats.lost_revenue?.progress || 0) <= 0 ? 'success' : 'error'"
+                    size="14"
+                    class="mr-1"
+                  >
+                    {{ (stats.lost_revenue?.progress || 0) <= 0 ? 'mdi-trending-down' : 'mdi-trending-up' }}
+                  </v-icon>
+                  <span
+                    class="text-caption"
+                    :class="(stats.lost_revenue?.progress || 0) <= 0 ? 'text-success' : 'text-error'"
+                  >
+                    {{ formatProgress(stats.lost_revenue?.progress) }}
+                  </span>
+                </div>
               </div>
             </div>
           </v-card-text>
         </v-card>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <v-card rounded="lg" elevation="0">
-          <v-card-text class="pa-5">
-            <div class="d-flex align-center">
-              <v-avatar color="success" size="40" class="mr-3">
-                <v-icon color="white">mdi-handshake</v-icon>
-              </v-avatar>
-              <div>
-                <p class="text-h6 font-weight-bold">{{ stats.won_deals?.count || 0 }}</p>
-                <p class="text-body-2 text-secondary">Won Deals</p>
-                <p class="text-caption text-success" v-if="stats.won_deals?.value">
-                  ${{ fmtNum(stats.won_deals.value) }}
-                </p>
-              </div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <v-card rounded="lg" elevation="0">
-          <v-card-text class="pa-5">
-            <div class="d-flex align-center">
-              <v-avatar color="error" size="40" class="mr-3">
-                <v-icon color="white">mdi-close-circle</v-icon>
-              </v-avatar>
-              <div>
-                <p class="text-h6 font-weight-bold">{{ stats.lost_deals?.count || 0 }}</p>
-                <p class="text-body-2 text-secondary">Lost Deals</p>
-                <p class="text-caption text-error" v-if="stats.lost_deals?.value">
-                  ${{ fmtNum(stats.lost_deals.value) }}
-                </p>
-              </div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <v-card rounded="lg" elevation="0">
-          <v-card-text class="pa-5">
-            <div class="d-flex align-center">
-              <v-avatar color="warning" size="40" class="mr-3">
-                <v-icon color="white">mdi-currency-usd</v-icon>
-              </v-avatar>
-              <div>
-                <p class="text-h6 font-weight-bold">
-                  ${{ stats.open_revenue ? fmtNum(stats.open_revenue) : '0' }}
-                </p>
-                <p class="text-body-2 text-secondary">Open Revenue</p>
-              </div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
 
-    <!-- Stat Cards Row 2 -->
-    <v-row class="mb-4">
-      <v-col cols="12" sm="6" md="3">
-        <v-card rounded="lg" elevation="0">
-          <v-card-text class="pa-5">
-            <div class="d-flex align-center">
-              <v-avatar color="indigo" size="40" class="mr-3">
-                <v-icon color="white">mdi-chart-line</v-icon>
-              </v-avatar>
-              <div>
-                <p class="text-h6 font-weight-bold">
-                  ${{ stats.avg_lead_value ? fmtNum(stats.avg_lead_value) : '0' }}
-                </p>
-                <p class="text-body-2 text-secondary">Avg Lead Value</p>
-              </div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <v-card rounded="lg" elevation="0">
-          <v-card-text class="pa-5">
-            <div class="d-flex align-center">
-              <v-avatar color="info" size="40" class="mr-3">
-                <v-icon color="white">mdi-calendar-check</v-icon>
-              </v-avatar>
-              <div>
-                <p class="text-h6 font-weight-bold">{{ stats.activities_due }}</p>
-                <p class="text-body-2 text-secondary">Activities Due Today</p>
-              </div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <v-card rounded="lg" elevation="0">
-          <v-card-text class="pa-5">
-            <div class="d-flex align-center">
-              <v-avatar color="teal" size="40" class="mr-3">
-                <v-icon color="white">mdi-file-document-outline</v-icon>
-              </v-avatar>
-              <div>
-                <p class="text-h6 font-weight-bold">{{ stats.total_quotes }}</p>
-                <p class="text-body-2 text-secondary">Total Quotes</p>
-              </div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <v-card rounded="lg" elevation="0">
-          <v-card-text class="pa-5">
-            <div class="d-flex align-center">
-              <v-avatar color="deep-purple" size="40" class="mr-3">
-                <v-icon color="white">mdi-account-multiple</v-icon>
-              </v-avatar>
-              <div>
-                <p class="text-h6 font-weight-bold">{{ stats.total_persons }}</p>
-                <p class="text-body-2 text-secondary">Total Persons</p>
-              </div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
+        <!-- 6 KPIs in 3x2 grid -->
+        <v-row class="mb-4">
+          <v-col v-for="kpi in kpis" :key="kpi.label" cols="12" sm="6" md="4">
+            <v-card  style="min-height: 100px">
+              <v-card-text class="pa-4">
+                <div class="text-caption text-medium-emphasis mb-1">{{ kpi.label }}</div>
+                <div class="d-flex align-center justify-space-between">
+                  <span class="text-h6 font-weight-bold">{{ kpi.prefix }}{{ fmtNum(kpi.value) }}</span>
+                  <div v-if="kpi.progress !== 0" class="d-flex align-center">
+                    <v-icon
+                      :color="kpi.progress >= 0 ? 'success' : 'error'"
+                      size="16"
+                      class="mr-1"
+                    >
+                      {{ kpi.progress >= 0 ? 'mdi-trending-up' : 'mdi-trending-down' }}
+                    </v-icon>
+                    <span
+                      class="text-caption font-weight-bold"
+                      :class="kpi.progress >= 0 ? 'text-success' : 'text-error'"
+                    >
+                      {{ formatProgress(kpi.progress) }}
+                    </span>
+                  </div>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
 
-    <!-- Charts Row 1: Leads Over Time + Pipeline Funnel -->
-    <v-row class="mb-4">
-      <v-col cols="12" md="7">
-        <v-card rounded="lg" elevation="0">
+        <!-- Leads Over Time Chart -->
+        <v-card  class="mb-4">
           <v-card-title class="text-subtitle-1 font-weight-medium pa-4 pb-0">
             Leads Over Time
           </v-card-title>
           <v-card-text class="pa-4">
-            <div v-if="stats.leads_over_time?.length" style="height: 280px">
+            <div style="height: 280px">
               <canvas ref="leadsChartCanvas"></canvas>
             </div>
-            <div v-else class="text-center text-medium-emphasis pa-8">
-              No lead data for this period
-            </div>
           </v-card-text>
         </v-card>
-      </v-col>
-      <v-col cols="12" md="5">
-        <v-card rounded="lg" elevation="0">
+
+        <!-- Top Products + Top Persons -->
+        <v-row>
+          <v-col cols="12" md="6">
+            <v-card >
+              <v-card-title class="text-subtitle-1 font-weight-medium pa-4 pb-0">
+                Top Selling Products
+              </v-card-title>
+              <v-card-text class="pa-4">
+                <v-list v-if="stats.top_products?.length" density="compact">
+                  <v-list-item
+                    v-for="product in stats.top_products"
+                    :key="product.sku"
+                    href="/admin/products"
+                  >
+                    <template #prepend>
+                      <v-icon color="green" size="small" class="mr-2">mdi-package-variant-closed</v-icon>
+                    </template>
+                    <v-list-item-title class="text-body-2 font-weight-medium">
+                      {{ product.name }}
+                    </v-list-item-title>
+                    <v-list-item-subtitle class="text-caption">
+                      SKU: {{ product.sku }} &middot; Qty: {{ product.total_qty }}
+                    </v-list-item-subtitle>
+                    <template #append>
+                      <span class="text-body-2 font-weight-bold text-success">
+                        ${{ fmtNum(product.total_revenue) }}
+                      </span>
+                    </template>
+                  </v-list-item>
+                </v-list>
+                <div v-else class="text-center text-medium-emphasis pa-8">
+                  No product sales yet
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-card >
+              <v-card-title class="text-subtitle-1 font-weight-medium pa-4 pb-0">
+                Top Persons
+              </v-card-title>
+              <v-card-text class="pa-4">
+                <v-list v-if="stats.top_persons?.length" density="compact">
+                  <v-list-item
+                    v-for="person in stats.top_persons"
+                    :key="person.id"
+                    :href="`/admin/contacts/persons/${person.id}`"
+                  >
+                    <template #prepend>
+                      <v-avatar color="primary" size="32" class="mr-2">
+                        <span class="text-white text-caption font-weight-medium">
+                          {{ (person.name || 'U').charAt(0).toUpperCase() }}
+                        </span>
+                      </v-avatar>
+                    </template>
+                    <v-list-item-title class="text-body-2 font-weight-medium">
+                      {{ person.name }}
+                    </v-list-item-title>
+                    <v-list-item-subtitle class="text-caption">
+                      {{ person.email || 'No email' }}
+                    </v-list-item-subtitle>
+                    <template #append>
+                      <v-chip size="x-small" color="primary" variant="tonal">
+                        {{ person.total_leads }} lead{{ person.total_leads !== 1 ? 's' : '' }}
+                      </v-chip>
+                    </template>
+                  </v-list-item>
+                </v-list>
+                <div v-else class="text-center text-medium-emphasis pa-8">
+                  No person data yet
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+      </div>
+
+      <!-- RIGHT Column (sidebar) -->
+      <div class="dashboard-sidebar">
+        <!-- Open Leads By Stage (funnel) -->
+        <v-card  class="mb-4">
           <v-card-title class="text-subtitle-1 font-weight-medium pa-4 pb-0">
-            Pipeline Funnel
+            Open Leads By States
           </v-card-title>
           <v-card-text class="pa-4">
-            <div v-if="stats.leads_by_stage?.length" style="height: 280px">
+            <div style="height: 280px">
               <canvas ref="funnelChartCanvas"></canvas>
             </div>
-            <div v-else class="text-center text-medium-emphasis pa-8">
-              No open leads yet
-            </div>
           </v-card-text>
         </v-card>
-      </v-col>
-    </v-row>
 
-    <!-- Charts Row 2: Revenue by Source + Revenue by Type -->
-    <v-row class="mb-4">
-      <v-col cols="12" md="6">
-        <v-card rounded="lg" elevation="0">
+        <!-- Revenue by Sources (doughnut) -->
+        <v-card  class="mb-4">
           <v-card-title class="text-subtitle-1 font-weight-medium pa-4 pb-0">
-            Revenue by Source
+            Revenue by Sources
           </v-card-title>
           <v-card-text class="pa-4">
-            <div v-if="stats.revenue_by_source?.length" class="d-flex align-center justify-center" style="height: 260px">
-              <div style="width: 220px; height: 220px">
+            <div class="d-flex flex-column align-center" style="min-height: 240px">
+              <div style="width: 200px; height: 200px">
                 <canvas ref="sourceChartCanvas"></canvas>
               </div>
-              <div class="ml-4">
+              <div v-if="stats.revenue_by_source?.length" class="mt-3 w-100">
                 <div
                   v-for="(src, i) in stats.revenue_by_source"
                   :key="src.source_name"
-                  class="d-flex align-center mb-2"
+                  class="d-flex align-center justify-space-between mb-1"
                 >
-                  <span
-                    class="d-inline-block rounded-circle mr-2"
-                    :style="{ width: '10px', height: '10px', backgroundColor: doughnutColors[i % doughnutColors.length] }"
-                  />
-                  <span class="text-body-2 mr-2">{{ src.source_name }}</span>
-                  <span class="text-body-2 font-weight-medium">${{ fmtNum(src.total) }}</span>
+                  <div class="d-flex align-center">
+                    <span
+                      class="d-inline-block rounded-circle mr-2"
+                      :style="{ width: '8px', height: '8px', backgroundColor: doughnutColors[i % doughnutColors.length] }"
+                    />
+                    <span class="text-caption">{{ src.source_name }}</span>
+                  </div>
+                  <span class="text-caption font-weight-medium">${{ fmtNum(src.total) }}</span>
                 </div>
               </div>
-            </div>
-            <div v-else class="text-center text-medium-emphasis pa-8">
-              No won deals yet
+              <div v-else class="mt-3 text-body-2 text-medium-emphasis">No data yet</div>
             </div>
           </v-card-text>
         </v-card>
-      </v-col>
-      <v-col cols="12" md="6">
-        <v-card rounded="lg" elevation="0">
+
+        <!-- Revenue by Types (doughnut) -->
+        <v-card >
           <v-card-title class="text-subtitle-1 font-weight-medium pa-4 pb-0">
-            Revenue by Type
+            Revenue by Types
           </v-card-title>
           <v-card-text class="pa-4">
-            <div v-if="stats.revenue_by_type?.length" class="d-flex align-center justify-center" style="height: 260px">
-              <div style="width: 220px; height: 220px">
+            <div class="d-flex flex-column align-center" style="min-height: 240px">
+              <div style="width: 200px; height: 200px">
                 <canvas ref="typeChartCanvas"></canvas>
               </div>
-              <div class="ml-4">
+              <div v-if="stats.revenue_by_type?.length" class="mt-3 w-100">
                 <div
                   v-for="(t, i) in stats.revenue_by_type"
                   :key="t.type_name"
-                  class="d-flex align-center mb-2"
+                  class="d-flex align-center justify-space-between mb-1"
                 >
-                  <span
-                    class="d-inline-block rounded-circle mr-2"
-                    :style="{ width: '10px', height: '10px', backgroundColor: doughnutColors[i % doughnutColors.length] }"
-                  />
-                  <span class="text-body-2 mr-2">{{ t.type_name }}</span>
-                  <span class="text-body-2 font-weight-medium">${{ fmtNum(t.total) }}</span>
+                  <div class="d-flex align-center">
+                    <span
+                      class="d-inline-block rounded-circle mr-2"
+                      :style="{ width: '8px', height: '8px', backgroundColor: doughnutColors[i % doughnutColors.length] }"
+                    />
+                    <span class="text-caption">{{ t.type_name }}</span>
+                  </div>
+                  <span class="text-caption font-weight-medium">${{ fmtNum(t.total) }}</span>
                 </div>
               </div>
-            </div>
-            <div v-else class="text-center text-medium-emphasis pa-8">
-              No won deals yet
+              <div v-else class="mt-3 text-body-2 text-medium-emphasis">No data yet</div>
             </div>
           </v-card-text>
         </v-card>
-      </v-col>
-    </v-row>
-
-    <!-- Bottom Row: Top Products + Top Persons -->
-    <v-row>
-      <v-col cols="12" md="6">
-        <v-card rounded="lg" elevation="0">
-          <v-card-title class="text-subtitle-1 font-weight-medium pa-4 pb-0">
-            Top Selling Products
-          </v-card-title>
-          <v-card-text class="pa-4">
-            <v-list v-if="stats.top_products?.length" density="compact">
-              <v-list-item
-                v-for="product in stats.top_products"
-                :key="product.sku"
-                href="/admin/products"
-              >
-                <template #prepend>
-                  <v-icon color="green" size="small" class="mr-2">mdi-package-variant-closed</v-icon>
-                </template>
-                <v-list-item-title class="text-body-2 font-weight-medium">
-                  {{ product.name }}
-                </v-list-item-title>
-                <v-list-item-subtitle class="text-caption">
-                  SKU: {{ product.sku }} &middot; Qty: {{ product.total_qty }}
-                </v-list-item-subtitle>
-                <template #append>
-                  <span class="text-body-2 font-weight-bold text-success">
-                    ${{ fmtNum(product.total_revenue) }}
-                  </span>
-                </template>
-              </v-list-item>
-            </v-list>
-            <div v-else class="text-center text-medium-emphasis pa-8">
-              No product sales yet
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6">
-        <v-card rounded="lg" elevation="0">
-          <v-card-title class="text-subtitle-1 font-weight-medium pa-4 pb-0">
-            Top Persons
-          </v-card-title>
-          <v-card-text class="pa-4">
-            <v-list v-if="stats.top_persons?.length" density="compact">
-              <v-list-item
-                v-for="person in stats.top_persons"
-                :key="person.id"
-                :href="`/admin/contacts/persons/${person.id}`"
-              >
-                <template #prepend>
-                  <v-avatar color="primary" size="32" class="mr-2">
-                    <span class="text-white text-caption font-weight-medium">
-                      {{ (person.name || 'U').charAt(0).toUpperCase() }}
-                    </span>
-                  </v-avatar>
-                </template>
-                <v-list-item-title class="text-body-2 font-weight-medium">
-                  {{ person.name }}
-                </v-list-item-title>
-                <v-list-item-subtitle class="text-caption">
-                  {{ person.email || 'No email' }}
-                </v-list-item-subtitle>
-                <template #append>
-                  <v-chip size="x-small" color="primary" variant="tonal">
-                    {{ person.total_leads }} lead{{ person.total_leads !== 1 ? 's' : '' }}
-                  </v-chip>
-                </template>
-              </v-list-item>
-            </v-list>
-            <div v-else class="text-center text-medium-emphasis pa-8">
-              No person data yet
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, nextTick, onBeforeUnmount } from "vue";
 import { get } from "@/api/client";
 import {
   Chart,
@@ -376,21 +326,34 @@ Chart.register(
 const data = (window as any).__INITIAL_DATA__ || {};
 const companyName = computed(() => data.company_name || "Headspace");
 
-// Date filter
-const startDate = ref("");
-const endDate = ref("");
+// Date filter — default to last 30 days
+function defaultStartDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return d.toISOString().slice(0, 10);
+}
+function defaultEndDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+const startDate = ref(defaultStartDate());
+const endDate = ref(defaultEndDate());
+
+interface KpiStat {
+  current: number | string;
+  previous?: number | string;
+  progress: number;
+}
 
 interface DashboardStats {
-  total_leads: number;
-  open_leads: number;
-  won_deals: { count: number; value: string | null };
-  lost_deals: { count: number; value: string | null };
-  open_revenue: string | null;
-  avg_lead_value: string | null;
-  total_quotes: number;
-  total_persons: number;
-  total_organizations: number;
-  activities_due: number;
+  total_leads: KpiStat;
+  avg_lead_value: KpiStat;
+  avg_leads_per_day: KpiStat;
+  total_quotations: KpiStat;
+  total_persons: KpiStat;
+  total_organizations: KpiStat;
+  won_revenue: KpiStat;
+  lost_revenue: KpiStat;
   leads_by_stage: Array<{ stage_name: string; count: number }>;
   revenue_by_source: Array<{ source_name: string; total: string }>;
   revenue_by_type: Array<{ type_name: string; total: string }>;
@@ -399,23 +362,48 @@ interface DashboardStats {
   top_persons: Array<{ id: number; name: string; email: string | null; total_leads: number }>;
 }
 
+const emptyKpi = (): KpiStat => ({ current: 0, progress: 0 });
+
 const stats = ref<DashboardStats>({
-  total_leads: 0,
-  open_leads: 0,
-  won_deals: { count: 0, value: null },
-  lost_deals: { count: 0, value: null },
-  open_revenue: null,
-  avg_lead_value: null,
-  total_quotes: 0,
-  total_persons: 0,
-  total_organizations: 0,
-  activities_due: 0,
+  total_leads: emptyKpi(),
+  avg_lead_value: emptyKpi(),
+  avg_leads_per_day: emptyKpi(),
+  total_quotations: emptyKpi(),
+  total_persons: emptyKpi(),
+  total_organizations: emptyKpi(),
+  won_revenue: emptyKpi(),
+  lost_revenue: emptyKpi(),
   leads_by_stage: [],
   revenue_by_source: [],
   revenue_by_type: [],
   leads_over_time: [],
   top_products: [],
   top_persons: [],
+});
+
+// KPI grid definitions
+const kpis = computed(() => [
+  { label: "Average Lead Value", value: stats.value.avg_lead_value?.current, prefix: "$", progress: stats.value.avg_lead_value?.progress || 0 },
+  { label: "Total Leads", value: stats.value.total_leads?.current, prefix: "", progress: stats.value.total_leads?.progress || 0 },
+  { label: "Average Leads Per Day", value: stats.value.avg_leads_per_day?.current, prefix: "", progress: stats.value.avg_leads_per_day?.progress || 0 },
+  { label: "Total Quotations", value: stats.value.total_quotations?.current, prefix: "", progress: stats.value.total_quotations?.progress || 0 },
+  { label: "Total Persons", value: stats.value.total_persons?.current, prefix: "", progress: stats.value.total_persons?.progress || 0 },
+  { label: "Total Organizations", value: stats.value.total_organizations?.current, prefix: "", progress: stats.value.total_organizations?.progress || 0 },
+]);
+
+// Revenue bar widths (relative to max of won+lost)
+const wonBarWidth = computed(() => {
+  const won = Number(stats.value.won_revenue?.current || 0);
+  const lost = Number(stats.value.lost_revenue?.current || 0);
+  const max = Math.max(won, lost, 1);
+  return (won / max) * 100;
+});
+
+const lostBarWidth = computed(() => {
+  const won = Number(stats.value.won_revenue?.current || 0);
+  const lost = Number(stats.value.lost_revenue?.current || 0);
+  const max = Math.max(won, lost, 1);
+  return (lost / max) * 100;
 });
 
 // Chart refs
@@ -431,14 +419,19 @@ let typeChart: Chart | null = null;
 
 const doughnutColors = ["#8979FF", "#FF928A", "#3CC3DF", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899"];
 
-function fmtNum(val: string | number | null): string {
+function fmtNum(val: string | number | null | undefined): string {
   if (val == null) return "0";
   return Number(val).toLocaleString();
 }
 
+function formatProgress(val: number | null | undefined): string {
+  if (val == null || val === 0) return "0%";
+  return (val > 0 ? "+" : "") + val.toFixed(1) + "%";
+}
+
 function resetDates() {
-  startDate.value = "";
-  endDate.value = "";
+  startDate.value = defaultStartDate();
+  endDate.value = defaultEndDate();
   loadStats();
 }
 
@@ -469,8 +462,9 @@ function renderCharts() {
   destroyCharts();
 
   // Leads Over Time (grouped bar chart)
-  if (leadsChartCanvas.value && stats.value.leads_over_time?.length) {
-    const labels = stats.value.leads_over_time.map((d) => d.period);
+  if (leadsChartCanvas.value) {
+    const lot = stats.value.leads_over_time || [];
+    const labels = lot.map((d) => d.period);
     leadsChart = new Chart(leadsChartCanvas.value, {
       type: "bar",
       data: {
@@ -478,21 +472,21 @@ function renderCharts() {
         datasets: [
           {
             label: "Total",
-            data: stats.value.leads_over_time.map((d) => d.total),
+            data: lot.map((d) => d.total),
             backgroundColor: "#8979FF",
             borderRadius: 4,
             barThickness: 16,
           },
           {
             label: "Won",
-            data: stats.value.leads_over_time.map((d) => d.won),
-            backgroundColor: "#3CC3DF",
+            data: lot.map((d) => d.won),
+            backgroundColor: "#63CFE5",
             borderRadius: 4,
             barThickness: 16,
           },
           {
             label: "Lost",
-            data: stats.value.leads_over_time.map((d) => d.lost),
+            data: lot.map((d) => d.lost),
             backgroundColor: "#FFA8A1",
             borderRadius: 4,
             barThickness: 16,
@@ -512,12 +506,16 @@ function renderCharts() {
   }
 
   // Pipeline Funnel (horizontal bar chart)
-  if (funnelChartCanvas.value && stats.value.leads_by_stage?.length) {
-    const labels = stats.value.leads_by_stage.map((s) => s.stage_name);
-    const values = stats.value.leads_by_stage.map((s) => s.count);
-    const colors = stats.value.leads_by_stage.map((_, i) => {
-      const t = i / Math.max(stats.value.leads_by_stage.length - 1, 1);
-      return `hsl(${170 + t * 40}, 60%, ${55 - t * 10}%)`;
+  if (funnelChartCanvas.value) {
+    const stages = stats.value.leads_by_stage || [];
+    const labels = stages.map((s) => s.stage_name);
+    const values = stages.map((s) => s.count);
+    const colors = stages.map((_, i) => {
+      const t = i / Math.max(stages.length - 1, 1);
+      const r = Math.round(144 + (50 - 144) * t);
+      const g = Math.round(247 + (204 - 247) * t);
+      const b = Math.round(236 + (188 - 236) * t);
+      return `rgba(${r},${g},${b},${0.8 + t * 0.2})`;
     });
     funnelChart = new Chart(funnelChartCanvas.value, {
       type: "bar",
@@ -546,49 +544,45 @@ function renderCharts() {
   }
 
   // Revenue by Source (doughnut)
-  if (sourceChartCanvas.value && stats.value.revenue_by_source?.length) {
-    sourceChart = new Chart(sourceChartCanvas.value, {
-      type: "doughnut",
-      data: {
-        labels: stats.value.revenue_by_source.map((s) => s.source_name),
-        datasets: [
-          {
-            data: stats.value.revenue_by_source.map((s) => Number(s.total)),
-            backgroundColor: doughnutColors.slice(0, stats.value.revenue_by_source.length),
-            borderWidth: 2,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        cutout: "60%",
-      },
-    });
+  if (sourceChartCanvas.value) {
+    const sources = stats.value.revenue_by_source || [];
+    if (sources.length) {
+      sourceChart = new Chart(sourceChartCanvas.value, {
+        type: "doughnut",
+        data: {
+          labels: sources.map((s) => s.source_name),
+          datasets: [{ data: sources.map((s) => Number(s.total)), backgroundColor: doughnutColors.slice(0, sources.length), borderWidth: 2 }],
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: "60%" },
+      });
+    } else {
+      sourceChart = new Chart(sourceChartCanvas.value, {
+        type: "doughnut",
+        data: { labels: ["No data"], datasets: [{ data: [1], backgroundColor: ["#E0E0E0"], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, cutout: "60%" },
+      });
+    }
   }
 
   // Revenue by Type (doughnut)
-  if (typeChartCanvas.value && stats.value.revenue_by_type?.length) {
-    typeChart = new Chart(typeChartCanvas.value, {
-      type: "doughnut",
-      data: {
-        labels: stats.value.revenue_by_type.map((t) => t.type_name),
-        datasets: [
-          {
-            data: stats.value.revenue_by_type.map((t) => Number(t.total)),
-            backgroundColor: doughnutColors.slice(0, stats.value.revenue_by_type.length),
-            borderWidth: 2,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        cutout: "60%",
-      },
-    });
+  if (typeChartCanvas.value) {
+    const types = stats.value.revenue_by_type || [];
+    if (types.length) {
+      typeChart = new Chart(typeChartCanvas.value, {
+        type: "doughnut",
+        data: {
+          labels: types.map((t) => t.type_name),
+          datasets: [{ data: types.map((t) => Number(t.total)), backgroundColor: doughnutColors.slice(0, types.length), borderWidth: 2 }],
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: "60%" },
+      });
+    } else {
+      typeChart = new Chart(typeChartCanvas.value, {
+        type: "doughnut",
+        data: { labels: ["No data"], datasets: [{ data: [1], backgroundColor: ["#E0E0E0"], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, cutout: "60%" },
+      });
+    }
   }
 }
 
@@ -600,3 +594,26 @@ onBeforeUnmount(() => {
   destroyCharts();
 });
 </script>
+
+<style scoped>
+.dashboard-layout {
+  flex-wrap: wrap;
+}
+.dashboard-sidebar {
+  width: 378px;
+  min-width: 378px;
+  max-width: 378px;
+  flex-shrink: 0;
+}
+.revenue-bar {
+  height: 24px;
+  transition: width 0.3s ease;
+}
+@media (max-width: 960px) {
+  .dashboard-sidebar {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+</style>

@@ -42,6 +42,7 @@ pub struct LeadPayload {
 #[derive(Deserialize)]
 pub struct StagePayload {
     pub lead_pipeline_stage_id: i64,
+    pub lost_reason: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -197,7 +198,7 @@ pub async fn kanban(
          LEFT JOIN lead_sources ls ON ls.id = l.lead_source_id
          LEFT JOIN lead_types lt ON lt.id = l.lead_type_id
          LEFT JOIN lead_pipelines pip ON pip.id = l.lead_pipeline_id
-         WHERE l.status IS NULL{vp}{pipeline_filter}
+         WHERE 1=1{vp}{pipeline_filter}
          ORDER BY l.id DESC",
         vp = vp.replace("t.user_id", "l.user_id"),
         pipeline_filter = pipeline_filter,
@@ -487,14 +488,51 @@ pub async fn update_stage(
         }
     };
 
+    // Look up the target stage's code to determine won/lost/normal
+    let stage_code = guard
+        .fetch_optional(sqlx::query_as::<_, (String,)>(
+            "SELECT ls.code FROM lead_pipeline_stages lps
+             JOIN lead_stages ls ON ls.id = lps.lead_stage_id
+             WHERE lps.id = $1",
+        ).bind(payload.lead_pipeline_stage_id))
+        .await;
+
+    let stage_code = match stage_code {
+        Ok(Some((code,))) => code,
+        Ok(None) => {
+            let _ = guard.release().await;
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "Invalid stage." })),
+            )
+                .into_response();
+        }
+        Err(e) => {
+            tracing::error!("Failed to look up stage code: {e}");
+            let _ = guard.release().await;
+            return internal_error();
+        }
+    };
+
+    // Derive status fields from stage code (mirrors Krayin's LeadRepository behavior)
+    let (status_val, lost_reason, closed_at_expr): (Option<bool>, Option<String>, &str) =
+        match stage_code.as_str() {
+            "won" => (Some(true), None, "NOW()"),
+            "lost" => (Some(false), payload.lost_reason, "NOW()"),
+            _ => (None, None, "NULL"),
+        };
+
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let result = guard
         .fetch_optional(
             sqlx::query_as::<_, Lead>(&format!(
-                "UPDATE leads SET lead_pipeline_stage_id = $1, updated_at = NOW()
-                 WHERE id = $2{vp} RETURNING *"
+                "UPDATE leads SET lead_pipeline_stage_id = $1, status = $2, lost_reason = $3,
+                 closed_at = {closed_at_expr}, updated_at = NOW()
+                 WHERE id = $4{vp} RETURNING *"
             ))
             .bind(payload.lead_pipeline_stage_id)
+            .bind(status_val)
+            .bind(&lost_reason)
             .bind(id),
         )
         .await;
@@ -556,10 +594,35 @@ pub async fn update_status(
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let closed_at_expr = if set_closed { "NOW()" } else { "NULL" };
+
+    // Also move to the won/lost pipeline stage if marking won/lost (mirrors Krayin)
+    let stage_update = if let Some(sv) = status_val {
+        let target_code = if sv { "won" } else { "lost" };
+        guard
+            .fetch_optional(sqlx::query_as::<_, (i64,)>(
+                "SELECT lps.id FROM lead_pipeline_stages lps
+                 JOIN lead_stages ls ON ls.id = lps.lead_stage_id
+                 WHERE lps.lead_pipeline_id = (SELECT lead_pipeline_id FROM leads WHERE id = $1)
+                 AND ls.code = $2",
+            ).bind(id).bind(target_code))
+            .await
+            .ok()
+            .flatten()
+            .map(|(sid,)| sid)
+    } else {
+        None
+    };
+
+    let stage_clause = if let Some(sid) = stage_update {
+        format!(", lead_pipeline_stage_id = {sid}")
+    } else {
+        String::new()
+    };
+
     let result = guard
         .fetch_optional(
             sqlx::query_as::<_, Lead>(&format!(
-                "UPDATE leads SET status = $1, lost_reason = $2, closed_at = {closed_at_expr}, updated_at = NOW()
+                "UPDATE leads SET status = $1, lost_reason = $2, closed_at = {closed_at_expr}{stage_clause}, updated_at = NOW()
                  WHERE id = $3{vp} RETURNING *"
             ))
             .bind(status_val)

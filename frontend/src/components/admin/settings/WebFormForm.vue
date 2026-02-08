@@ -13,7 +13,7 @@
               :rules="[rules.required]"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-textarea
               v-model="form.description"
@@ -21,14 +21,14 @@
               rows="2"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-text-field
               v-model="form.submit_button_label"
               label="Submit Button Label"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-select
               v-model="form.submit_success_action"
@@ -38,20 +38,20 @@
               label="After Submit"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-text-field
               v-model="form.submit_success_content"
               :label="form.submit_success_action === 'redirect' ? 'Redirect URL' : 'Success Message'"
               variant="outlined"
               density="compact"
-              class="mb-3"
+              class="mb-4"
             />
             <v-checkbox
               v-model="form.create_lead"
               label="Create lead from submission"
               hide-details
-              class="mb-3"
+              class="mb-4"
             />
           </v-card-text>
         </v-card>
@@ -148,7 +148,7 @@
         <v-card>
           <v-card-title>Appearance</v-card-title>
           <v-card-text>
-            <div v-for="colorField in colorFields" :key="colorField.key" class="mb-3">
+            <div v-for="colorField in colorFields" :key="colorField.key" class="mb-4">
               <label class="text-body-2 d-block mb-1">{{ colorField.label }}</label>
               <div class="d-flex align-center ga-3">
                 <v-text-field
@@ -194,7 +194,7 @@
     </v-row>
 
     <div class="d-flex mt-4">
-      <v-btn href="/admin/settings/web-forms" variant="text">Cancel</v-btn>
+      <v-btn href="/admin/settings/web-forms" variant="outlined">Cancel</v-btn>
       <v-spacer />
       <v-btn color="primary" @click="save" :loading="saving" prepend-icon="mdi-content-save">
         {{ isEdit ? "Update" : "Create" }}

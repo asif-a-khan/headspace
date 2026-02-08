@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h5">Quotes</h1>
+      <h1 class="text-h5 font-weight-bold">Quotes</h1>
       <v-spacer />
       <v-btn
         v-if="canDelete && selectedIds.length"

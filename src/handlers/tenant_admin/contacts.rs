@@ -10,8 +10,8 @@ use crate::models::organization::OrganizationRow;
 use crate::models::person::PersonRow;
 use crate::models::tenant_admin::TenantUser;
 use crate::views::tenant_admin::{
-    OrganizationCreate, OrganizationEdit, OrganizationIndex, PersonCreate, PersonEdit, PersonIndex,
-    PersonShow,
+    OrganizationCreate, OrganizationEdit, OrganizationIndex, OrganizationShow, PersonCreate,
+    PersonEdit, PersonIndex, PersonShow,
 };
 
 use crate::api::tenant_admin::contacts::view_permission_filter;
@@ -187,20 +187,22 @@ pub async fn persons_show(
     }
     let person = person.unwrap();
 
-    // Organization name
-    let org_name: Option<String> = if let Some(oid) = person.organization_id {
-        guard
-            .fetch_optional(
-                sqlx::query_as::<_, (String,)>("SELECT name FROM organizations WHERE id = $1")
+    // Organization
+    let organization: Option<crate::models::organization::Organization> =
+        if let Some(oid) = person.organization_id {
+            guard
+                .fetch_optional(
+                    sqlx::query_as::<_, crate::models::organization::Organization>(
+                        "SELECT * FROM organizations WHERE id = $1",
+                    )
                     .bind(oid),
-            )
-            .await
-            .ok()
-            .flatten()
-            .map(|(n,)| n)
-    } else {
-        None
-    };
+                )
+                .await
+                .ok()
+                .flatten()
+        } else {
+            None
+        };
 
     // Assigned user name
     let user_name: Option<String> = if let Some(uid) = person.user_id {
@@ -277,7 +279,7 @@ pub async fn persons_show(
 
     let initial_data = serde_json::json!({
         "person": person,
-        "organization_name": org_name,
+        "organization": organization,
         "user_name": user_name,
         "activities": activities,
         "leads": leads,
@@ -408,4 +410,137 @@ pub async fn organizations_edit(
         "company_name": company.name,
     });
     OrganizationEdit::new(csrf_token, initial_data.to_string()).into_response()
+}
+
+pub async fn organizations_show(
+    session: Session,
+    Extension(db): Extension<Database>,
+    Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
+    Path(id): Path<i64>,
+) -> Response {
+    let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
+
+    let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
+        Ok(g) => g,
+        Err(_) => {
+            return OrganizationShow::new(csrf_token, "{}".to_string()).into_response();
+        }
+    };
+
+    let org = guard
+        .fetch_optional(
+            sqlx::query_as::<_, crate::models::organization::Organization>(
+                "SELECT * FROM organizations WHERE id = $1",
+            )
+            .bind(id),
+        )
+        .await
+        .ok()
+        .flatten();
+
+    if org.is_none() {
+        let _ = guard.release().await;
+        return OrganizationShow::new(csrf_token, "{}".to_string()).into_response();
+    }
+    let org = org.unwrap();
+
+    // Assigned user name
+    let user_name: Option<String> = if let Some(uid) = org.user_id {
+        guard
+            .fetch_optional(
+                sqlx::query_as::<_, (String,)>(
+                    "SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = $1",
+                )
+                .bind(uid),
+            )
+            .await
+            .ok()
+            .flatten()
+            .map(|(n,)| n)
+    } else {
+        None
+    };
+
+    // Persons linked to this org
+    let persons = guard
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::person::Person>(
+                "SELECT * FROM persons WHERE organization_id = $1 ORDER BY name",
+            )
+            .bind(id),
+        )
+        .await
+        .unwrap_or_default();
+
+    // Leads for persons in this org
+    let leads = guard
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::lead::LeadRow>(
+                "SELECT l.*,
+                        p.name AS person_name,
+                        CONCAT(u.first_name, ' ', u.last_name) AS user_name,
+                        ls.name AS source_name,
+                        lt.name AS type_name,
+                        stg.name AS stage_name,
+                        pip.name AS pipeline_name
+                 FROM leads l
+                 LEFT JOIN persons p ON p.id = l.person_id
+                 LEFT JOIN users u ON u.id = l.user_id
+                 LEFT JOIN lead_sources ls ON ls.id = l.lead_source_id
+                 LEFT JOIN lead_types lt ON lt.id = l.lead_type_id
+                 LEFT JOIN lead_pipeline_stages lps ON lps.id = l.lead_pipeline_stage_id
+                 LEFT JOIN lead_stages stg ON stg.id = lps.lead_stage_id
+                 LEFT JOIN lead_pipelines pip ON pip.id = l.lead_pipeline_id
+                 WHERE l.person_id IN (SELECT id FROM persons WHERE organization_id = $1)
+                 ORDER BY l.id DESC",
+            )
+            .bind(id),
+        )
+        .await
+        .unwrap_or_default();
+
+    // Activities for persons in this org
+    let activities = guard
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::activity::Activity>(
+                "SELECT * FROM activities WHERE id IN (
+                     SELECT activity_id FROM person_activities
+                     WHERE person_id IN (SELECT id FROM persons WHERE organization_id = $1)
+                 ) ORDER BY created_at DESC",
+            )
+            .bind(id),
+        )
+        .await
+        .unwrap_or_default();
+
+    // Tags
+    let tags = guard
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::tag::Tag>(
+                "SELECT t.* FROM tags t
+                 JOIN organization_tags ot ON ot.tag_id = t.id
+                 WHERE ot.organization_id = $1
+                 ORDER BY t.name",
+            )
+            .bind(id),
+        )
+        .await
+        .unwrap_or_default();
+
+    let _ = guard.release().await;
+
+    let initial_data = serde_json::json!({
+        "organization": org,
+        "user_name": user_name,
+        "persons": persons,
+        "leads": leads,
+        "activities": activities,
+        "tags": tags,
+        "admin_name": user.full_name(),
+        "company_name": company.name,
+        "permission_type": user.permission_type,
+        "permissions": user.role_permissions,
+    });
+    OrganizationShow::new(csrf_token, initial_data.to_string()).into_response()
 }

@@ -85,7 +85,7 @@
             <v-btn type="submit" color="primary" :loading="loading">
               {{ isEdit ? "Update" : "Create" }}
             </v-btn>
-            <v-btn href="/admin/settings/attributes" variant="text">Cancel</v-btn>
+            <v-btn href="/admin/settings/attributes" variant="outlined">Cancel</v-btn>
           </div>
         </v-form>
       </v-card-text>

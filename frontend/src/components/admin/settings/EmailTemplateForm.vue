@@ -9,24 +9,24 @@
             v-model="form.name"
             label="Template Name"
             :rules="[rules.required]"
-            class="mb-3"
+            class="mb-4"
           />
           <v-text-field
             v-model="form.subject"
             label="Subject"
             :rules="[rules.required]"
-            class="mb-3"
+            class="mb-4"
           />
           <v-textarea
             v-model="form.content"
             label="Content"
             rows="10"
-            class="mb-3"
+            class="mb-4"
           />
         </v-form>
       </v-card-text>
       <v-card-actions class="px-4 pb-4">
-        <v-btn href="/admin/settings/email-templates" variant="text">Cancel</v-btn>
+        <v-btn href="/admin/settings/email-templates" variant="outlined">Cancel</v-btn>
         <v-spacer />
         <v-btn color="primary" :loading="saving" @click="submit">
           {{ isEdit ? "Update" : "Create" }}

@@ -527,6 +527,24 @@ impl OrganizationEdit {
     }
 }
 
+#[derive(Template, WebTemplate)]
+#[template(path = "pages/admin/contacts/organizations/show.html")]
+pub struct OrganizationShow {
+    pub csrf_token: String,
+    pub page: &'static str,
+    pub initial_data: String,
+    pub js_file: String,
+    pub css_file: String,
+}
+
+impl OrganizationShow {
+    pub fn new(csrf_token: String, initial_data: String) -> Self {
+        let (csrf_token, page, initial_data, js_file, css_file) =
+            authenticated_page("admin-organization-detail", csrf_token, initial_data);
+        Self { csrf_token, page, initial_data, js_file, css_file }
+    }
+}
+
 // -- Leads --
 
 #[derive(Template, WebTemplate)]

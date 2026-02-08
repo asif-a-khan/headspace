@@ -9,14 +9,14 @@
             v-model="form.subject"
             label="Subject"
             :rules="[rules.required]"
-            class="mb-3"
+            class="mb-4"
           />
 
           <v-textarea
             v-model="form.description"
             label="Description"
             rows="2"
-            class="mb-3"
+            class="mb-4"
           />
 
           <div class="d-flex ga-3 mb-3">
@@ -223,7 +223,7 @@
     </v-card>
 
     <div class="d-flex">
-      <v-btn href="/admin/quotes" variant="text">Cancel</v-btn>
+      <v-btn href="/admin/quotes" variant="outlined">Cancel</v-btn>
       <v-spacer />
       <v-btn color="primary" :loading="saving" @click="submit">
         {{ isEdit ? "Update" : "Create" }}

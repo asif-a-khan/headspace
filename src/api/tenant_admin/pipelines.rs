@@ -99,8 +99,14 @@ pub async fn store(
     match result {
         Ok(pipeline) => {
             // Create pipeline stages
+            let mut next_sort: i32 = 0;
+            let mut has_won = false;
+            let mut has_lost = false;
             if let Some(stages) = &payload.stages {
                 for (i, s) in stages.iter().enumerate() {
+                    let name_lower = s.name.to_lowercase();
+                    if name_lower == "won" { has_won = true; }
+                    if name_lower == "lost" { has_lost = true; }
                     let stage_id = match find_or_create_stage(&mut guard, &s.name).await {
                         Ok(id) => id,
                         Err(e) => {
@@ -119,6 +125,30 @@ pub async fn store(
                             .bind(s.probability.unwrap_or(100))
                             .bind(s.sort_order.unwrap_or(i as i32)),
                         )
+                        .await;
+                    next_sort = s.sort_order.unwrap_or(i as i32) + 1;
+                }
+            }
+
+            // Auto-add Won and Lost stages if not provided (mirrors Krayin)
+            if !has_won {
+                if let Ok(won_id) = find_or_create_stage(&mut guard, "Won").await {
+                    let _ = guard
+                        .execute(sqlx::query(
+                            "INSERT INTO lead_pipeline_stages (lead_pipeline_id, lead_stage_id, probability, sort_order)
+                             VALUES ($1, $2, 100, $3)",
+                        ).bind(pipeline.id).bind(won_id).bind(next_sort))
+                        .await;
+                    next_sort += 1;
+                }
+            }
+            if !has_lost {
+                if let Ok(lost_id) = find_or_create_stage(&mut guard, "Lost").await {
+                    let _ = guard
+                        .execute(sqlx::query(
+                            "INSERT INTO lead_pipeline_stages (lead_pipeline_id, lead_stage_id, probability, sort_order)
+                             VALUES ($1, $2, 0, $3)",
+                        ).bind(pipeline.id).bind(lost_id).bind(next_sort))
                         .await;
                 }
             }

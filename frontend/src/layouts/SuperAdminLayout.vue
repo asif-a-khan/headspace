@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <!-- Header -->
-    <v-app-bar flat :height="60" color="surface" border="b" class="px-2">
+    <v-app-bar flat :height="62" color="surface" border="b" class="px-2">
       <template #prepend>
         <a href="/super/tenants" class="d-flex align-center text-decoration-none ml-2">
           <svg width="32" height="32" viewBox="0 0 32 32" class="mr-2">
@@ -55,7 +55,7 @@
       permanent
       :rail="!sidebarExpanded"
       :rail-width="70"
-      :width="220"
+      :width="200"
       color="surface"
       border="r"
       @mouseenter="sidebarExpanded = true"
@@ -106,7 +106,7 @@
 
     <!-- Main content -->
     <v-main class="bg-background">
-      <v-container fluid class="pa-6">
+      <v-container fluid class="px-4 pb-6 pt-4">
         <v-alert
           v-if="flash"
           type="success"
@@ -210,20 +210,3 @@ async function logout() {
 }
 </script>
 
-<style scoped>
-.active-item {
-  background-color: rgb(var(--v-theme-primary)) !important;
-  color: white !important;
-}
-.active-item :deep(.v-icon) {
-  color: white !important;
-}
-.active-item :deep(.v-list-item-title) {
-  color: white !important;
-}
-
-/* Remove default v-list-group indentation so sub-items align with parent */
-.sidebar-list :deep(.v-list-group__items .v-list-item) {
-  padding-inline-start: 16px !important;
-}
-</style>

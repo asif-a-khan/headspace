@@ -17,14 +17,14 @@
               v-model="form.title"
               label="Title"
               :rules="[rules.required]"
-              class="mb-3"
+              class="mb-4"
             />
 
             <v-textarea
               v-model="form.description"
               label="Description"
               rows="3"
-              class="mb-3"
+              class="mb-4"
             />
 
             <div class="d-flex ga-3 mb-3">
@@ -88,7 +88,7 @@
               item-value="id"
               label="Assigned To"
               clearable
-              class="mb-3"
+              class="mb-4"
             />
           </div>
 
@@ -241,7 +241,7 @@
       </v-card-text>
 
       <v-card-actions class="px-4 pb-4">
-        <v-btn href="/admin/leads" variant="text">Cancel</v-btn>
+        <v-btn href="/admin/leads" variant="outlined">Cancel</v-btn>
         <v-spacer />
         <v-btn color="primary" :loading="saving" @click="submit">
           {{ isEdit ? "Update" : "Create" }}
@@ -258,18 +258,18 @@
             v-model="newPerson.name"
             label="Name"
             :rules="[rules.required]"
-            class="mb-3"
+            class="mb-4"
           />
           <v-text-field
             v-model="newPerson.email"
             label="Email"
             type="email"
-            class="mb-3"
+            class="mb-4"
           />
           <v-text-field
             v-model="newPerson.phone"
             label="Phone"
-            class="mb-3"
+            class="mb-4"
           />
           <v-select
             v-model="newPerson.organization_id"

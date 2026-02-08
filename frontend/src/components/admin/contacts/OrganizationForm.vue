@@ -9,7 +9,7 @@
             v-model="form.name"
             label="Name"
             :rules="[rules.required]"
-            class="mb-3"
+            class="mb-4"
           />
 
           <v-select
@@ -19,7 +19,7 @@
             item-value="id"
             label="Assigned To"
             clearable
-            class="mb-3"
+            class="mb-4"
           />
 
           <!-- Address fields -->
@@ -57,7 +57,7 @@
         </v-form>
       </v-card-text>
       <v-card-actions class="px-4 pb-4">
-        <v-btn href="/admin/contacts/organizations" variant="text">Cancel</v-btn>
+        <v-btn href="/admin/contacts/organizations" variant="outlined">Cancel</v-btn>
         <v-spacer />
         <v-btn color="primary" :loading="saving" @click="submit">
           {{ isEdit ? "Update" : "Create" }}

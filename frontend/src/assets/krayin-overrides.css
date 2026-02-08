@@ -1,0 +1,247 @@
+/* ============================================================
+   Krayin CRM Visual Overrides for Vuetify 3
+   Global CSS that makes Headspace match Krayin's Tailwind styling.
+   Import this ONCE in main.ts — handles ~90% of visual delta.
+   ============================================================ */
+
+/* --- CSS Custom Properties (Design Tokens) --- */
+:root {
+  --hs-sidebar-width: 200px;
+  --hs-sidebar-rail-width: 70px;
+  --hs-header-height: 62px;
+  --hs-gray-50: #F9FAFB;
+  --hs-gray-100: #F3F4F6;
+  --hs-gray-200: #E5E7EB;
+  --hs-gray-300: #D1D5DB;
+  --hs-gray-400: #9CA3AF;
+  --hs-gray-500: #6B7280;
+  --hs-gray-600: #4B5563;
+  --hs-gray-800: #1F2937;
+}
+
+.v-theme--dark {
+  --hs-gray-50: #1F2937;
+  --hs-gray-100: #111827;
+  --hs-gray-200: #1F2937;
+  --hs-gray-300: #374151;
+  --hs-gray-400: #9CA3AF;
+  --hs-gray-500: #6B7280;
+  --hs-gray-600: #D1D5DB;
+  --hs-gray-800: #E5E7EB;
+}
+
+/* --- Global Typography (Krayin: 14px body, 17px line-height) --- */
+.v-application {
+  font-size: 14px !important;
+  line-height: 17px;
+}
+
+/* --- DATA TABLE OVERRIDES (most visible difference) --- */
+
+/* Header: bg-gray-50, normal weight, NOT uppercase, 47px height */
+.v-data-table thead th {
+  background-color: var(--hs-gray-50) !important;
+  font-weight: 400 !important;
+  text-transform: none !important;
+  font-size: 14px !important;
+  height: 47px !important;
+  border-bottom: 1px solid var(--hs-gray-200) !important;
+}
+
+.v-data-table .v-data-table-header__content {
+  font-weight: 400 !important;
+  text-transform: none !important;
+}
+
+/* Body rows: 16px padding, border-bottom */
+.v-data-table tbody td {
+  font-size: 14px !important;
+  border-bottom: 1px solid var(--hs-gray-200) !important;
+}
+
+/* Row hover */
+.v-data-table tbody tr:hover > td {
+  background-color: var(--hs-gray-50) !important;
+}
+
+/* Table wrapper border */
+.v-data-table > .v-table__wrapper {
+  border: 1px solid var(--hs-gray-200);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Footer/pagination */
+.v-data-table-footer {
+  border-top: 1px solid var(--hs-gray-200) !important;
+}
+
+/* Sort icon subtle */
+.v-data-table-header__sort-icon {
+  opacity: 0.5;
+}
+
+/* Selection checkbox smaller */
+.v-data-table .v-selection-control {
+  min-height: auto !important;
+}
+
+/* --- DIALOG / MODAL OVERRIDES --- */
+
+/* Overlay: gray at 50% */
+.v-overlay__scrim {
+  background-color: var(--hs-gray-500) !important;
+  opacity: 0.5 !important;
+}
+
+/* Dialog card title: border-bottom, Krayin-style padding */
+.v-dialog .v-card > .v-card-title {
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--hs-gray-200) !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  line-height: 1.5;
+}
+
+/* Dialog card text: border-bottom */
+.v-dialog .v-card > .v-card-text {
+  padding: 10px 16px !important;
+  border-bottom: 1px solid var(--hs-gray-200) !important;
+}
+
+/* Dialog card actions: right-aligned */
+.v-dialog .v-card > .v-card-actions {
+  padding: 10px 16px !important;
+  justify-content: flex-end !important;
+}
+
+/* --- BUTTON OVERRIDES --- */
+
+/* All buttons: Krayin font-semibold, no letter-spacing, no uppercase */
+.v-btn {
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+/* Outlined buttons: 2px border like Krayin */
+.v-btn--variant-outlined {
+  border-width: 2px !important;
+}
+
+/* Text/plain button hover */
+.v-btn--variant-text:hover,
+.v-btn--variant-plain:hover {
+  background-color: var(--hs-gray-100) !important;
+}
+
+/* --- FORM INPUT OVERRIDES --- */
+
+/* Border-radius: 4px (Krayin uses rounded, not rounded-md) */
+.v-field--variant-outlined {
+  border-radius: 4px !important;
+}
+.v-field--variant-outlined .v-field__outline__start {
+  border-radius: 4px 0 0 4px !important;
+}
+.v-field--variant-outlined .v-field__outline__end {
+  border-radius: 0 4px 4px 0 !important;
+}
+
+/* Input border: gray-200 default, gray-400 on hover/focus */
+.v-field--variant-outlined:not(.v-field--focused):not(.v-field--error) .v-field__outline {
+  --v-field-border-opacity: 1;
+  color: var(--hs-gray-200) !important;
+}
+.v-field--variant-outlined:hover:not(.v-field--focused):not(.v-field--error) .v-field__outline {
+  color: var(--hs-gray-400) !important;
+}
+.v-field--variant-outlined.v-field--focused:not(.v-field--error) .v-field__outline {
+  color: var(--hs-gray-400) !important;
+  --v-field-border-width: 1px;
+}
+
+/* Input text: 14px */
+.v-field input,
+.v-field textarea,
+.v-field .v-field__input {
+  font-size: 14px !important;
+}
+
+/* Error state: red border */
+.v-field--error .v-field__outline {
+  color: #DC2626 !important;
+}
+
+/* Label: full opacity */
+.v-label {
+  opacity: 1 !important;
+}
+
+/* --- CARD OVERRIDES --- */
+
+/* No box-shadow on cards (reinforce flat design) */
+.v-card {
+  box-shadow: none !important;
+}
+
+/* --- CHIP / TAG OVERRIDES --- */
+
+/* Small chips: Krayin px-3 py-1.5 text-xs font-medium */
+.v-chip--size-small {
+  height: auto !important;
+  padding: 4px 12px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* --- TAB OVERRIDES --- */
+
+.v-tab {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+}
+
+/* --- EXPANSION PANEL OVERRIDES --- */
+
+.v-expansion-panel-title {
+  padding: 8px 16px !important;
+  min-height: auto !important;
+  font-size: 14px !important;
+}
+.v-expansion-panel-title--active {
+  min-height: auto !important;
+}
+
+/* --- BREADCRUMBS --- */
+
+.v-breadcrumbs {
+  font-size: 14px !important;
+  padding: 0 !important;
+}
+
+/* --- SIDEBAR ACTIVE ITEM (shared between layouts) --- */
+
+.active-item {
+  background-color: rgb(var(--v-theme-primary)) !important;
+  color: white !important;
+}
+.active-item .v-icon,
+.active-item .v-list-item__prepend .v-icon {
+  color: white !important;
+}
+.active-item .v-list-item-title {
+  color: white !important;
+}
+
+/* Sidebar sub-items alignment */
+.sidebar-list .v-list-group__items .v-list-item {
+  padding-inline-start: 16px !important;
+}
+
+/* Sidebar inactive hover */
+.sidebar-list .v-list-item:not(.active-item):hover {
+  background-color: var(--hs-gray-100) !important;
+}

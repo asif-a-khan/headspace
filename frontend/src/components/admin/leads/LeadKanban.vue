@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h5">Kanban Board</h1>
+      <h1 class="text-h5 font-weight-bold">Kanban Board</h1>
       <v-spacer />
       <v-text-field
         v-model="searchQuery"
@@ -25,7 +25,7 @@
         class="mr-3"
         @update:model-value="loadKanban"
       />
-      <v-btn variant="outlined" class="mr-2" href="/admin/leads">
+      <v-btn variant="outlined" class="mr-2" href="/admin/leads/list">
         <v-icon start>mdi-view-list</v-icon>
         List View
       </v-btn>
@@ -39,7 +39,7 @@
       </v-btn>
     </div>
 
-    <div class="kanban-board d-flex ga-3 overflow-x-auto pb-4">
+    <div class="kanban-board d-flex ga-3 pb-4">
       <div
         v-for="stage in pipelineStages"
         :key="stage.id"
@@ -85,7 +85,7 @@
                   >
                     <!-- Person + Org with avatar -->
                     <div v-if="element.person_name" class="d-flex align-start mb-2">
-                      <v-avatar size="28" color="primary" variant="tonal" class="mr-2 flex-shrink-0">
+                      <v-avatar size="36" color="primary" variant="tonal" class="mr-2 flex-shrink-0">
                         <span class="text-caption font-weight-bold">
                           {{ element.person_name.charAt(0).toUpperCase() }}
                         </span>
@@ -275,7 +275,12 @@ onMounted(() => {
 
 <style scoped>
 .kanban-board {
-  min-height: 500px;
+  height: 65vh;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+.kanban-board::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
 }
 .kanban-column {
   width: 275px;
@@ -283,15 +288,21 @@ onMounted(() => {
   max-width: 275px;
   flex-shrink: 0;
 }
+.kanban-column {
+  display: flex;
+  flex-direction: column;
+}
 .kanban-column-card {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 .kanban-column-header {
   border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 .kanban-cards {
-  min-height: 200px;
-  max-height: calc(100vh - 317px);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 .kanban-drop-zone {

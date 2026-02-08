@@ -1,12 +1,12 @@
 <template>
   <div>
     <div class="d-flex align-center mb-4">
-      <h1 class="text-h5">Leads</h1>
+      <h1 class="text-h5 font-weight-bold">Leads</h1>
       <v-spacer />
       <v-btn
         variant="outlined"
         class="mr-2"
-        href="/admin/leads/kanban"
+        href="/admin/leads"
       >
         <v-icon start>mdi-view-column</v-icon>
         Kanban
@@ -98,9 +98,9 @@
       </template>
       <template #item.status="{ item }">
         <div class="d-flex align-center ga-1">
-          <v-chip v-if="item.status === null" color="info" size="small">Open</v-chip>
-          <v-chip v-else-if="item.status" color="success" size="small">Won</v-chip>
-          <v-chip v-else color="error" size="small">Lost</v-chip>
+          <v-chip v-if="item.status === null" color="info" size="small" variant="tonal">Open</v-chip>
+          <v-chip v-else-if="item.status" color="success" size="small" variant="tonal">Won</v-chip>
+          <v-chip v-else color="error" size="small" variant="tonal">Lost</v-chip>
           <v-tooltip v-if="item.rotten_days && item.rotten_days > 0" location="top">
             <template #activator="{ props }">
               <v-icon v-bind="props" color="error" size="small">mdi-alert-circle</v-icon>

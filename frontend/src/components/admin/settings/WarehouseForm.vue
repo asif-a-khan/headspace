@@ -9,18 +9,18 @@
             v-model="form.name"
             label="Warehouse Name"
             :rules="[rules.required]"
-            class="mb-3"
+            class="mb-4"
           />
           <v-textarea
             v-model="form.description"
             label="Description"
             rows="3"
-            class="mb-3"
+            class="mb-4"
           />
           <v-text-field
             v-model="form.contact_name"
             label="Contact Name"
-            class="mb-3"
+            class="mb-4"
           />
 
           <div class="text-subtitle-2 mb-2">Contact Emails</div>
@@ -54,7 +54,7 @@
         </v-form>
       </v-card-text>
       <v-card-actions class="px-4 pb-4">
-        <v-btn href="/admin/settings/warehouses" variant="text">Cancel</v-btn>
+        <v-btn href="/admin/settings/warehouses" variant="outlined">Cancel</v-btn>
         <v-spacer />
         <v-btn color="primary" :loading="saving" @click="submit">
           {{ isEdit ? "Update" : "Create" }}

@@ -24,7 +24,7 @@ export default createVuetify({
         },
         variables: {
           "border-color": "#E5E7EB",
-          "border-opacity": 0.2,
+          "border-opacity": 1,
         },
       },
       dark: {
@@ -45,7 +45,7 @@ export default createVuetify({
         },
         variables: {
           "border-color": "#1F2937",
-          "border-opacity": 0.2,
+          "border-opacity": 1,
         },
       },
     },
@@ -54,9 +54,15 @@ export default createVuetify({
     VCard: {
       rounded: "lg",
       elevation: 0,
+      border: true,
     },
     VDataTable: {
       density: "comfortable",
+      hover: true,
+    },
+    VDataTableServer: {
+      density: "comfortable",
+      hover: true,
     },
     VTextField: {
       variant: "outlined",
@@ -70,6 +76,14 @@ export default createVuetify({
       variant: "outlined",
       density: "comfortable",
     },
+    VAutocomplete: {
+      variant: "outlined",
+      density: "comfortable",
+    },
+    VFileInput: {
+      variant: "outlined",
+      density: "comfortable",
+    },
     VSwitch: {
       color: "primary",
     },
@@ -79,6 +93,12 @@ export default createVuetify({
     },
     VChip: {
       rounded: "md",
+    },
+    VTab: {
+      class: "text-none",
+    },
+    VDialog: {
+      maxWidth: 500,
     },
     VNavigationDrawer: {
       elevation: 0,
