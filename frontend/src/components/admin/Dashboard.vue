@@ -417,7 +417,7 @@ let funnelChart: Chart | null = null;
 let sourceChart: Chart | null = null;
 let typeChart: Chart | null = null;
 
-const doughnutColors = ["#8979FF", "#FF928A", "#3CC3DF", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899"];
+const doughnutColors = ["#0E90D9", "#FF7043", "#3CC3DF", "#F59E0B", "#10B981", "#0284C7", "#FB923C"];
 
 function fmtNum(val: string | number | null | undefined): string {
   if (val == null) return "0";
@@ -473,7 +473,7 @@ function renderCharts() {
           {
             label: "Total",
             data: lot.map((d) => d.total),
-            backgroundColor: "#8979FF",
+            backgroundColor: "#0E90D9",
             borderRadius: 4,
             barThickness: 16,
           },

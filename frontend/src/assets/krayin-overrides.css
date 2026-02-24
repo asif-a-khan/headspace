@@ -19,6 +19,17 @@
   --hs-gray-800: #1F2937;
 }
 
+.v-theme--sunset {
+  --hs-gray-50: #FAF6EF;
+  --hs-gray-100: #F5F0E8;
+  --hs-gray-200: #E8E0D0;
+  --hs-gray-300: #D5CBBA;
+  --hs-gray-400: #A89880;
+  --hs-gray-500: #8B7355;
+  --hs-gray-600: #5C4033;
+  --hs-gray-800: #3E2723;
+}
+
 .v-theme--dark {
   --hs-gray-50: #1F2937;
   --hs-gray-100: #111827;

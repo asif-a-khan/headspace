@@ -20,7 +20,7 @@
         variant="text"
         @click="toggleTheme"
       >
-        <v-icon>{{ isDark ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
+        <v-icon>{{ currentTheme === 'light' ? 'mdi-weather-sunny' : currentTheme === 'sunset' ? 'mdi-weather-sunset' : 'mdi-weather-night' }}</v-icon>
       </v-btn>
 
       <!-- Profile dropdown -->
@@ -146,6 +146,7 @@ const currentPath = window.location.pathname;
 const sidebarExpanded = ref(true);
 
 const isDark = computed(() => theme.global.current.value.dark);
+const currentTheme = computed(() => theme.global.name.value);
 
 // --- Breadcrumbs ---
 const superLabelMap: Record<string, string> = {
@@ -193,7 +194,9 @@ function isActive(path: string): boolean {
 }
 
 function toggleTheme() {
-  const next = isDark.value ? "light" : "dark";
+  const cycle = ["light", "sunset", "dark"];
+  const idx = cycle.indexOf(currentTheme.value);
+  const next = cycle[(idx + 1) % cycle.length];
   theme.global.name.value = next;
   localStorage.setItem("headspace-theme", next);
 }

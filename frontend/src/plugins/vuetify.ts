@@ -27,6 +27,28 @@ export default createVuetify({
           "border-opacity": 1,
         },
       },
+      sunset: {
+        dark: false,
+        colors: {
+          primary: "#0E90D9",
+          "on-primary": "#FFFFFF",
+          secondary: "#8B7355",
+          "on-secondary": "#FFFFFF",
+          error: "#EF4444",
+          warning: "#F59E0B",
+          info: "#3B82F6",
+          success: "#10B981",
+          background: "#F5F0E8",
+          surface: "#FFFDF7",
+          "on-background": "#3E2723",
+          "on-surface": "#3E2723",
+          "surface-variant": "#F0EAD6",
+        },
+        variables: {
+          "border-color": "#E0D5C1",
+          "border-opacity": 1,
+        },
+      },
       dark: {
         colors: {
           primary: "#0E90D9",
