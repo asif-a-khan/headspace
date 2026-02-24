@@ -160,6 +160,13 @@
         <v-card>
           <v-card-title>Email / IMAP</v-card-title>
           <v-card-text>
+            <v-switch
+              v-model="imapEnabled"
+              label="Enable IMAP Sync"
+              color="primary"
+              density="compact"
+              class="mb-2"
+            />
             <v-text-field
               v-model="config['email.imap.host']"
               label="IMAP Host"
@@ -221,6 +228,11 @@ import { ref, reactive, computed } from "vue";
 
 const data = window.__INITIAL_DATA__ || {};
 const config = reactive<Record<string, string>>(data.config || {});
+
+const imapEnabled = computed({
+  get: () => config["email.imap.enabled"] === "true",
+  set: (val: boolean) => { config["email.imap.enabled"] = val ? "true" : "false"; },
+});
 
 const currencyOptions = [
   { label: "$ (USD)", value: "$" },

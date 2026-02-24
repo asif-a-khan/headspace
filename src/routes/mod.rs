@@ -170,6 +170,7 @@ fn tenant_admin_protected_routes() -> Router {
         .route("/admin/api/settings/types/{id}", get(api::tenant_admin::types::show).put(api::tenant_admin::types::update).delete(api::tenant_admin::types::destroy))
         // Email API routes
         .route("/admin/api/emails", get(api::tenant_admin::emails::list).post(api::tenant_admin::emails::store))
+        .route("/admin/api/emails/sync", post(api::tenant_admin::emails::trigger_sync))
         .route("/admin/api/emails/{id}", get(api::tenant_admin::emails::show).put(api::tenant_admin::emails::update).delete(api::tenant_admin::emails::destroy))
         // Configuration API routes
         .route("/admin/api/settings/config", get(api::tenant_admin::config::list).put(api::tenant_admin::config::update))

@@ -3,6 +3,16 @@
     <div class="d-flex align-center mb-4">
       <h1 class="text-h5">Mail</h1>
       <v-spacer />
+      <v-btn
+        v-if="imapEnabled"
+        variant="outlined"
+        prepend-icon="mdi-sync"
+        class="mr-2"
+        :loading="syncing"
+        @click="triggerSync()"
+      >
+        Sync
+      </v-btn>
       <v-btn color="primary" prepend-icon="mdi-pencil" @click="openCompose()">
         Compose
       </v-btn>
@@ -27,6 +37,15 @@
             </v-list-item>
           </v-list>
           <v-divider />
+          <v-list-item
+            v-if="imapEnabled && imapLastSyncAt"
+            prepend-icon="mdi-clock-outline"
+            density="compact"
+            class="text-medium-emphasis"
+          >
+            <v-list-item-title class="text-caption">Last sync</v-list-item-title>
+            <v-list-item-subtitle class="text-caption">{{ formatSyncTime(imapLastSyncAt) }}</v-list-item-subtitle>
+          </v-list-item>
           <v-list-item
             v-if="!smtpConfigured"
             prepend-icon="mdi-alert-circle"
@@ -196,6 +215,8 @@ import { ref, reactive, onMounted } from "vue";
 
 const data = window.__INITIAL_DATA__ || {};
 const smtpConfigured = data.smtp_configured || false;
+const imapEnabled = data.imap_enabled || false;
+const imapLastSyncAt = ref<string>(data.imap_last_sync_at || "");
 const folderCounts = reactive<Record<string, number>>(data.folder_counts || {});
 
 interface EmailItem {
@@ -252,6 +273,8 @@ const compose = reactive({
   body: "",
   parentId: null as number | null,
 });
+
+const syncing = ref(false);
 
 const snackbar = ref(false);
 const snackbarText = ref("");
@@ -393,6 +416,45 @@ async function trashEmail(id: number) {
 function formatRecipients(list: string[] | undefined): string {
   if (!list || !Array.isArray(list)) return "";
   return list.join(", ");
+}
+
+async function triggerSync() {
+  syncing.value = true;
+  try {
+    const resp = await fetch("/admin/api/emails/sync", {
+      method: "POST",
+      headers: { "X-CSRF-TOKEN": getCsrf() },
+    });
+    const result = await resp.json();
+    if (resp.ok) {
+      snackbarText.value = result.message || "Sync started.";
+      snackbarColor.value = "success";
+      // Refresh the email list after a short delay to give sync time
+      setTimeout(() => {
+        fetchEmails();
+        imapLastSyncAt.value = new Date().toISOString();
+      }, 5000);
+    } else {
+      snackbarText.value = result.error || "Sync failed.";
+      snackbarColor.value = "error";
+    }
+    snackbar.value = true;
+  } catch {
+    snackbarText.value = "Failed to trigger sync.";
+    snackbarColor.value = "error";
+    snackbar.value = true;
+  } finally {
+    syncing.value = false;
+  }
+}
+
+function formatSyncTime(isoStr: string): string {
+  if (!isoStr) return "Never";
+  try {
+    return new Date(isoStr).toLocaleString();
+  } catch {
+    return isoStr;
+  }
 }
 
 onMounted(() => {

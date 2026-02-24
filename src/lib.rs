@@ -4,6 +4,7 @@ pub mod config;
 pub mod db;
 pub mod error;
 pub mod handlers;
+pub mod imap;
 pub mod middleware;
 pub mod models;
 pub mod routes;
@@ -57,6 +58,10 @@ pub async fn run() -> anyhow::Result<()> {
         .with_secure(false) // TODO: set true in production with HTTPS
         .with_same_site(SameSite::Lax)
         .with_expiry(Expiry::OnInactivity(Duration::hours(8)));
+
+    // Spawn IMAP sync background task
+    let _imap_handle = imap::scheduler::spawn_imap_sync_loop(db.writer().clone());
+    tracing::info!("IMAP sync background task started");
 
     let addr = format!("{}:{}", config.app_host, config.app_port);
 

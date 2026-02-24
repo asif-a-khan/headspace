@@ -594,6 +594,76 @@ fn html_to_text(html: &str) -> String {
     result.trim().to_string()
 }
 
+/// POST /admin/api/emails/sync — trigger a manual IMAP sync for this tenant.
+pub async fn trigger_sync(
+    Extension(db): Extension<Database>,
+    Extension(company): Extension<Company>,
+    Extension(user): Extension<TenantUser>,
+) -> Response {
+    if let Err(resp) = bouncer(&user, "mail") {
+        return resp;
+    }
+
+    // Load IMAP config to validate it's enabled
+    let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
+        Ok(g) => g,
+        Err(e) => {
+            tracing::error!("Failed to acquire tenant connection: {e}");
+            return internal_error();
+        }
+    };
+
+    let config = load_tenant_config(&mut guard).await;
+    let _ = guard.release().await;
+
+    let imap_config = match crate::imap::ImapConfig::from_config_map(&config) {
+        Some(c) if c.enabled && c.is_configured() => c,
+        _ => {
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "IMAP is not configured or not enabled." })),
+            )
+                .into_response();
+        }
+    };
+
+    // Spawn a detached task to do the sync
+    let pool = db.writer().clone();
+    let schema = company.schema_name.clone();
+    tokio::spawn(async move {
+        let pool_conn = match pool.acquire().await {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::error!(schema = %schema, error = %e, "IMAP manual sync: acquire failed");
+                return;
+            }
+        };
+        let mut conn = pool_conn.detach();
+
+        let set_sql = format!("SET search_path TO {schema}, public");
+        if let Err(e) = sqlx::query(&set_sql).execute(&mut conn).await {
+            tracing::error!(schema = %schema, error = %e, "IMAP manual sync: set search_path failed");
+            return;
+        }
+
+        match crate::imap::sync::sync_tenant(&mut conn, &imap_config, &schema).await {
+            Ok(stats) => {
+                tracing::info!(
+                    schema = %schema,
+                    inserted = stats.messages_inserted,
+                    skipped = stats.messages_skipped,
+                    "IMAP manual sync completed"
+                );
+            }
+            Err(e) => {
+                tracing::warn!(schema = %schema, error = %e, "IMAP manual sync failed");
+            }
+        }
+    });
+
+    Json(serde_json::json!({ "message": "IMAP sync started." })).into_response()
+}
+
 fn internal_error() -> Response {
     (
         StatusCode::INTERNAL_SERVER_ERROR,

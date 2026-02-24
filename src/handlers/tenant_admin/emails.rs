@@ -53,9 +53,25 @@ pub async fn index(
         .map(|h| !h.is_empty())
         .unwrap_or(false);
 
+    let imap_configured = config
+        .get("email.imap.host")
+        .map(|h| !h.is_empty())
+        .unwrap_or(false);
+    let imap_enabled = config
+        .get("email.imap.enabled")
+        .map(|v| v == "true")
+        .unwrap_or(false);
+    let imap_last_sync_at = config
+        .get("email.imap.last_sync_at")
+        .cloned()
+        .unwrap_or_default();
+
     let initial_data = serde_json::json!({
         "folder_counts": counts,
         "smtp_configured": smtp_configured,
+        "imap_configured": imap_configured,
+        "imap_enabled": imap_enabled,
+        "imap_last_sync_at": imap_last_sync_at,
         "from_address": config.get("email.smtp.from_address").cloned().unwrap_or_default(),
         "from_name": config.get("email.smtp.from_name").cloned().unwrap_or_default(),
         "admin_name": user.full_name(),
