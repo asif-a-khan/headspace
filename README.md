@@ -1,4 +1,4 @@
-# Headspace CRM
+# Headspace CRM 
 
 A multi-tenant CRM built in Rust. Ships as a single binary that serves server-rendered HTML (Askama), interactive Vue.js components, and a JSON API. Multi-tenancy uses PostgreSQL schema-per-tenant isolation.
 
