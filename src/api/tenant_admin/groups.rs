@@ -1,13 +1,13 @@
+use axum::Json;
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 use validator::Validate;
 
 use crate::auth::bouncer::{bouncer, validate_payload};
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::group::Group;
 use crate::models::tenant_admin::TenantUser;
@@ -24,7 +24,9 @@ pub async fn list(
     Extension(company): Extension<Company>,
     Extension(user): Extension<TenantUser>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.groups") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.groups") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -57,8 +59,12 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<GroupPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.groups.create") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.groups.create") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -69,13 +75,15 @@ pub async fn store(
     };
 
     let result = guard
-        .fetch_one(sqlx::query_as::<_, Group>(
-            "INSERT INTO groups (name, description)
+        .fetch_one(
+            sqlx::query_as::<_, Group>(
+                "INSERT INTO groups (name, description)
              VALUES ($1, $2)
              RETURNING *",
+            )
+            .bind(&payload.name)
+            .bind(&payload.description),
         )
-        .bind(&payload.name)
-        .bind(&payload.description))
         .await;
 
     let _ = guard.release().await;
@@ -103,7 +111,9 @@ pub async fn show(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.groups.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.groups.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -114,10 +124,7 @@ pub async fn show(
     };
 
     let group = guard
-        .fetch_optional(sqlx::query_as::<_, Group>(
-            "SELECT * FROM groups WHERE id = $1",
-        )
-        .bind(id))
+        .fetch_optional(sqlx::query_as::<_, Group>("SELECT * FROM groups WHERE id = $1").bind(id))
         .await;
 
     let _ = guard.release().await;
@@ -143,8 +150,12 @@ pub async fn update(
     Path(id): Path<i64>,
     Json(payload): Json<GroupPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.groups.edit") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.groups.edit") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -155,15 +166,17 @@ pub async fn update(
     };
 
     let result = guard
-        .fetch_optional(sqlx::query_as::<_, Group>(
-            "UPDATE groups
+        .fetch_optional(
+            sqlx::query_as::<_, Group>(
+                "UPDATE groups
              SET name = $1, description = $2, updated_at = NOW()
              WHERE id = $3
              RETURNING *",
+            )
+            .bind(&payload.name)
+            .bind(&payload.description)
+            .bind(id),
         )
-        .bind(&payload.name)
-        .bind(&payload.description)
-        .bind(id))
         .await;
 
     let _ = guard.release().await;
@@ -195,7 +208,9 @@ pub async fn destroy(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.groups.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.groups.delete") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,

@@ -30,10 +30,7 @@ pub async fn index(
     TenantIndex::new(csrf_token, initial_data.to_string()).into_response()
 }
 
-pub async fn create(
-    session: Session,
-    Extension(admin): Extension<SuperAdmin>,
-) -> Response {
+pub async fn create(session: Session, Extension(admin): Extension<SuperAdmin>) -> Response {
     let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
     let initial_data = serde_json::json!({
         "admin_name": admin.full_name(),

@@ -23,8 +23,8 @@
 //! guard.release().await?;
 //! ```
 
-use sqlx::postgres::{PgArguments, PgQueryResult, PgRow};
 use sqlx::pool::PoolConnection;
+use sqlx::postgres::{PgArguments, PgQueryResult, PgRow};
 use sqlx::{FromRow, PgPool, Postgres};
 
 /// A tenant-scoped database connection that guarantees search_path cleanup.
@@ -57,7 +57,10 @@ impl TenantGuard {
     where
         T: for<'r> FromRow<'r, PgRow> + Send + Unpin,
     {
-        let conn = self.conn.as_mut().expect("TenantGuard: connection already released");
+        let conn = self
+            .conn
+            .as_mut()
+            .expect("TenantGuard: connection already released");
         query.fetch_optional(&mut **conn).await
     }
 
@@ -69,7 +72,10 @@ impl TenantGuard {
     where
         T: for<'r> FromRow<'r, PgRow> + Send + Unpin,
     {
-        let conn = self.conn.as_mut().expect("TenantGuard: connection already released");
+        let conn = self
+            .conn
+            .as_mut()
+            .expect("TenantGuard: connection already released");
         query.fetch_one(&mut **conn).await
     }
 
@@ -81,7 +87,10 @@ impl TenantGuard {
     where
         T: for<'r> FromRow<'r, PgRow> + Send + Unpin,
     {
-        let conn = self.conn.as_mut().expect("TenantGuard: connection already released");
+        let conn = self
+            .conn
+            .as_mut()
+            .expect("TenantGuard: connection already released");
         query.fetch_all(&mut **conn).await
     }
 
@@ -90,7 +99,10 @@ impl TenantGuard {
         &mut self,
         query: sqlx::query::Query<'q, Postgres, PgArguments>,
     ) -> Result<PgQueryResult, sqlx::Error> {
-        let conn = self.conn.as_mut().expect("TenantGuard: connection already released");
+        let conn = self
+            .conn
+            .as_mut()
+            .expect("TenantGuard: connection already released");
         query.execute(&mut **conn).await
     }
 
@@ -100,9 +112,7 @@ impl TenantGuard {
     /// being returned to the pool in a poisoned state.
     pub async fn release(mut self) -> anyhow::Result<()> {
         if let Some(mut conn) = self.conn.take() {
-            let result = sqlx::query("RESET search_path")
-                .execute(&mut *conn)
-                .await;
+            let result = sqlx::query("RESET search_path").execute(&mut *conn).await;
 
             if let Err(e) = result {
                 tracing::warn!(

@@ -2,13 +2,13 @@ use axum::extract::{Extension, Path};
 use axum::response::{IntoResponse, Response};
 use tower_sessions::Session;
 
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::middleware::csrf::get_csrf_token;
 use crate::models::company::Company;
 use crate::models::email_template::EmailTemplate;
 use crate::models::tenant_admin::TenantUser;
-use crate::views::tenant_admin::{EmailTemplateIndex, EmailTemplateCreate, EmailTemplateEdit};
+use crate::views::tenant_admin::{EmailTemplateCreate, EmailTemplateEdit, EmailTemplateIndex};
 
 pub async fn index(
     session: Session,
@@ -22,7 +22,9 @@ pub async fn index(
         Err(_) => return EmailTemplateIndex::new(csrf_token, "{}".to_string()).into_response(),
     };
     let templates = guard
-        .fetch_all(sqlx::query_as::<_, EmailTemplate>("SELECT * FROM email_templates ORDER BY id DESC"))
+        .fetch_all(sqlx::query_as::<_, EmailTemplate>(
+            "SELECT * FROM email_templates ORDER BY id DESC",
+        ))
         .await
         .unwrap_or_default();
     let _ = guard.release().await;
@@ -63,7 +65,10 @@ pub async fn edit(
         Err(_) => return EmailTemplateEdit::new(csrf_token, "{}".to_string()).into_response(),
     };
     let template = guard
-        .fetch_optional(sqlx::query_as::<_, EmailTemplate>("SELECT * FROM email_templates WHERE id = $1").bind(id))
+        .fetch_optional(
+            sqlx::query_as::<_, EmailTemplate>("SELECT * FROM email_templates WHERE id = $1")
+                .bind(id),
+        )
         .await
         .ok()
         .flatten();

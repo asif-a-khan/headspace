@@ -1,11 +1,11 @@
-use axum::extract::{Extension, Multipart};
-use axum::http::{header, StatusCode};
-use axum::response::{IntoResponse, Response};
 use axum::Json;
+use axum::extract::{Extension, Multipart};
+use axum::http::{StatusCode, header};
+use axum::response::{IntoResponse, Response};
 
 use crate::auth::bouncer::bouncer;
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;
 
@@ -215,10 +215,7 @@ pub async fn export_leads(
             id: row.id,
             title: row.title.clone(),
             description: row.description.clone().unwrap_or_default(),
-            lead_value: row
-                .lead_value
-                .map(|v| v.to_string())
-                .unwrap_or_default(),
+            lead_value: row.lead_value.map(|v| v.to_string()).unwrap_or_default(),
             status: status_str,
             contact_person: row.person_name.clone().unwrap_or_default(),
             source: row.source_name.clone().unwrap_or_default(),
@@ -886,11 +883,9 @@ pub async fn import_organizations(
 
         let result = guard
             .execute(
-                sqlx::query(
-                    "INSERT INTO organizations (name, user_id) VALUES ($1, $2)",
-                )
-                .bind(&name)
-                .bind(user.id),
+                sqlx::query("INSERT INTO organizations (name, user_id) VALUES ($1, $2)")
+                    .bind(&name)
+                    .bind(user.id),
             )
             .await;
 

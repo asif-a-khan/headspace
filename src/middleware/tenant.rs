@@ -5,11 +5,11 @@
 //! and injects `Company` into request extensions.
 
 use axum::{
+    Json,
     extract::{Extension, Request},
     http::StatusCode,
     middleware::Next,
     response::{IntoResponse, Response},
-    Json,
 };
 
 use crate::config::Config;
@@ -59,12 +59,10 @@ pub async fn require_tenant(
     }
 
     // Look up company by domain (subdomain matches companies.domain)
-    let company = sqlx::query_as::<_, Company>(
-        "SELECT * FROM main.companies WHERE domain = $1",
-    )
-    .bind(subdomain)
-    .fetch_optional(db.reader())
-    .await;
+    let company = sqlx::query_as::<_, Company>("SELECT * FROM main.companies WHERE domain = $1")
+        .bind(subdomain)
+        .fetch_optional(db.reader())
+        .await;
 
     match company {
         Ok(Some(c)) if c.is_active => {

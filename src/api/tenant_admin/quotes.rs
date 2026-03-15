@@ -1,14 +1,14 @@
+use axum::Json;
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use validator::Validate;
 
 use crate::auth::bouncer::{bouncer, validate_payload};
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::quote::{Quote, QuoteItem, QuoteRow, QuoteSearchRow};
 use crate::models::tenant_admin::TenantUser;
@@ -56,7 +56,9 @@ pub async fn list(
     Extension(company): Extension<Company>,
     Extension(user): Extension<TenantUser>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "quotes") { return resp; }
+    if let Err(resp) = bouncer(&user, "quotes") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -66,7 +68,8 @@ pub async fn list(
         }
     };
 
-    let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "q.user_id");
+    let vp =
+        view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "q.user_id");
     let quotes = guard
         .fetch_all(sqlx::query_as::<_, QuoteRow>(&format!(
             "SELECT q.id, q.subject, q.grand_total, q.expired_at, q.person_id, q.user_id, q.created_at,
@@ -97,7 +100,9 @@ pub async fn search(
     Extension(user): Extension<TenantUser>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "quotes") { return resp; }
+    if let Err(resp) = bouncer(&user, "quotes") {
+        return resp;
+    }
 
     let q = params.get("q").map(|s| s.as_str()).unwrap_or("");
     if q.len() < 2 {
@@ -134,8 +139,12 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<QuotePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "quotes.create") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "quotes.create") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -162,14 +171,14 @@ pub async fn store(
             .bind(&payload.description)
             .bind(&payload.billing_address)
             .bind(&payload.shipping_address)
-            .bind(&payload.discount_percent)
-            .bind(&payload.discount_amount)
-            .bind(&payload.tax_amount)
-            .bind(&payload.adjustment_amount)
-            .bind(&payload.sub_total)
-            .bind(&payload.grand_total)
+            .bind(payload.discount_percent)
+            .bind(payload.discount_amount)
+            .bind(payload.tax_amount)
+            .bind(payload.adjustment_amount)
+            .bind(payload.sub_total)
+            .bind(payload.grand_total)
             .bind(expired_at)
-            .bind(&payload.person_id)
+            .bind(payload.person_id)
             .bind(assigned_user),
         )
         .await;
@@ -191,12 +200,12 @@ pub async fn store(
                         .bind(&item.name)
                         .bind(item.quantity.unwrap_or(1))
                         .bind(item.price.unwrap_or_default())
-                        .bind(&item.discount_percent)
-                        .bind(&item.discount_amount)
-                        .bind(&item.tax_percent)
-                        .bind(&item.tax_amount)
+                        .bind(item.discount_percent)
+                        .bind(item.discount_amount)
+                        .bind(item.tax_percent)
+                        .bind(item.tax_amount)
                         .bind(item.total.unwrap_or_default())
-                        .bind(&item.product_id)
+                        .bind(item.product_id)
                         .bind(quote.id),
                     )
                     .await;
@@ -242,7 +251,9 @@ pub async fn show(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "quotes.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "quotes.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -254,9 +265,9 @@ pub async fn show(
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let quote = guard
-        .fetch_optional(sqlx::query_as::<_, Quote>(&format!(
-            "SELECT * FROM quotes WHERE id = $1{vp}"
-        )).bind(id))
+        .fetch_optional(
+            sqlx::query_as::<_, Quote>(&format!("SELECT * FROM quotes WHERE id = $1{vp}")).bind(id),
+        )
         .await;
 
     let items = guard
@@ -272,9 +283,7 @@ pub async fn show(
     let _ = guard.release().await;
 
     match quote {
-        Ok(Some(q)) => {
-            Json(serde_json::json!({ "data": q, "items": items })).into_response()
-        }
+        Ok(Some(q)) => Json(serde_json::json!({ "data": q, "items": items })).into_response(),
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "Quote not found." })),
@@ -294,8 +303,12 @@ pub async fn update(
     Path(id): Path<i64>,
     Json(payload): Json<QuotePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "quotes.edit") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "quotes.edit") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -322,31 +335,32 @@ pub async fn update(
             .bind(&payload.description)
             .bind(&payload.billing_address)
             .bind(&payload.shipping_address)
-            .bind(&payload.discount_percent)
-            .bind(&payload.discount_amount)
-            .bind(&payload.tax_amount)
-            .bind(&payload.adjustment_amount)
-            .bind(&payload.sub_total)
-            .bind(&payload.grand_total)
+            .bind(payload.discount_percent)
+            .bind(payload.discount_amount)
+            .bind(payload.tax_amount)
+            .bind(payload.adjustment_amount)
+            .bind(payload.sub_total)
+            .bind(payload.grand_total)
             .bind(expired_at)
-            .bind(&payload.person_id)
-            .bind(&payload.user_id)
+            .bind(payload.person_id)
+            .bind(payload.user_id)
             .bind(id),
         )
         .await;
 
     // Handle items: update existing, insert new, delete marked
-    if let Ok(Some(_)) = &result {
-        if let Some(items) = &payload.items {
-            for item in items {
-                if item.is_delete.unwrap_or(false) {
-                    if let Some(item_id) = item.id {
-                        let _ = guard
-                            .execute(sqlx::query("DELETE FROM quote_items WHERE id = $1").bind(item_id))
-                            .await;
-                    }
-                } else if let Some(item_id) = item.id {
+    if let Ok(Some(_)) = &result
+        && let Some(items) = &payload.items
+    {
+        for item in items {
+            if item.is_delete.unwrap_or(false) {
+                if let Some(item_id) = item.id {
                     let _ = guard
+                        .execute(sqlx::query("DELETE FROM quote_items WHERE id = $1").bind(item_id))
+                        .await;
+                }
+            } else if let Some(item_id) = item.id {
+                let _ = guard
                         .execute(
                             sqlx::query(
                                 "UPDATE quote_items SET sku = $1, name = $2, quantity = $3, price = $4,
@@ -358,17 +372,17 @@ pub async fn update(
                             .bind(&item.name)
                             .bind(item.quantity.unwrap_or(1))
                             .bind(item.price.unwrap_or_default())
-                            .bind(&item.discount_percent)
-                            .bind(&item.discount_amount)
-                            .bind(&item.tax_percent)
-                            .bind(&item.tax_amount)
+                            .bind(item.discount_percent)
+                            .bind(item.discount_amount)
+                            .bind(item.tax_percent)
+                            .bind(item.tax_amount)
                             .bind(item.total.unwrap_or_default())
-                            .bind(&item.product_id)
+                            .bind(item.product_id)
                             .bind(item_id),
                         )
                         .await;
-                } else {
-                    let _ = guard
+            } else {
+                let _ = guard
                         .execute(
                             sqlx::query(
                                 "INSERT INTO quote_items (sku, name, quantity, price, discount_percent, discount_amount, tax_percent, tax_amount, total, product_id, quote_id)
@@ -378,16 +392,15 @@ pub async fn update(
                             .bind(&item.name)
                             .bind(item.quantity.unwrap_or(1))
                             .bind(item.price.unwrap_or_default())
-                            .bind(&item.discount_percent)
-                            .bind(&item.discount_amount)
-                            .bind(&item.tax_percent)
-                            .bind(&item.tax_amount)
+                            .bind(item.discount_percent)
+                            .bind(item.discount_amount)
+                            .bind(item.tax_percent)
+                            .bind(item.tax_amount)
                             .bind(item.total.unwrap_or_default())
-                            .bind(&item.product_id)
+                            .bind(item.product_id)
                             .bind(id),
                         )
                         .await;
-                }
             }
         }
     }
@@ -421,7 +434,9 @@ pub async fn destroy(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "quotes.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "quotes.delete") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -471,9 +486,12 @@ pub async fn mass_delete(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<MassDeletePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "quotes.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "quotes.delete") {
+        return resp;
+    }
     if payload.ids.is_empty() {
-        return Json(serde_json::json!({ "message": "No quotes selected.", "deleted_count": 0 })).into_response();
+        return Json(serde_json::json!({ "message": "No quotes selected.", "deleted_count": 0 }))
+            .into_response();
     }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
@@ -486,7 +504,12 @@ pub async fn mass_delete(
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let result = guard
-        .execute(sqlx::query(&format!("DELETE FROM quotes WHERE id = ANY($1::bigint[]){vp}")).bind(&payload.ids))
+        .execute(
+            sqlx::query(&format!(
+                "DELETE FROM quotes WHERE id = ANY($1::bigint[]){vp}"
+            ))
+            .bind(&payload.ids),
+        )
         .await;
 
     let _ = guard.release().await;
@@ -498,7 +521,11 @@ pub async fn mass_delete(
         }
         Err(e) => {
             tracing::error!("Failed to mass delete quotes: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed to delete quotes." }))).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Failed to delete quotes." })),
+            )
+                .into_response()
         }
     }
 }
@@ -511,7 +538,9 @@ pub async fn download_pdf(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "quotes") { return resp; }
+    if let Err(resp) = bouncer(&user, "quotes") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -523,9 +552,9 @@ pub async fn download_pdf(
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let quote = guard
-        .fetch_optional(sqlx::query_as::<_, Quote>(&format!(
-            "SELECT * FROM quotes WHERE id = $1{vp}"
-        )).bind(id))
+        .fetch_optional(
+            sqlx::query_as::<_, Quote>(&format!("SELECT * FROM quotes WHERE id = $1{vp}")).bind(id),
+        )
         .await;
 
     let items = guard
@@ -542,9 +571,10 @@ pub async fn download_pdf(
     let person_name: Option<String> = if let Ok(Some(ref q)) = quote {
         if let Some(pid) = q.person_id {
             guard
-                .fetch_optional(sqlx::query_as::<_, (String,)>(
-                    "SELECT name FROM persons WHERE id = $1",
-                ).bind(pid))
+                .fetch_optional(
+                    sqlx::query_as::<_, (String,)>("SELECT name FROM persons WHERE id = $1")
+                        .bind(pid),
+                )
                 .await
                 .ok()
                 .flatten()
@@ -578,7 +608,10 @@ pub async fn download_pdf(
             let filename = format!("quote-{}.pdf", quote.id);
             (
                 [
-                    (axum::http::header::CONTENT_TYPE, "application/pdf".to_string()),
+                    (
+                        axum::http::header::CONTENT_TYPE,
+                        "application/pdf".to_string(),
+                    ),
                     (
                         axum::http::header::CONTENT_DISPOSITION,
                         format!("attachment; filename=\"{filename}\""),
@@ -605,7 +638,7 @@ fn generate_quote_pdf(
     company_name: &str,
     person_name: Option<&str>,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    use genpdfi::elements::{Paragraph, TableLayout, Break};
+    use genpdfi::elements::{Break, Paragraph, TableLayout};
     use genpdfi::style::Style;
     use genpdfi::{Alignment, Document, Element, Margins};
 
@@ -623,7 +656,11 @@ fn generate_quote_pdf(
     let bold_style = Style::new().bold();
 
     // Company name
-    doc.push(Paragraph::new(company_name).aligned(Alignment::Left).styled(title_style));
+    doc.push(
+        Paragraph::new(company_name)
+            .aligned(Alignment::Left)
+            .styled(title_style),
+    );
     doc.push(Break::new(1.5));
 
     // Quote header
@@ -632,9 +669,15 @@ fn generate_quote_pdf(
     if let Some(name) = person_name {
         doc.push(Paragraph::new(format!("Contact: {}", name)));
     }
-    doc.push(Paragraph::new(format!("Date: {}", quote.created_at.format("%Y-%m-%d"))));
+    doc.push(Paragraph::new(format!(
+        "Date: {}",
+        quote.created_at.format("%Y-%m-%d")
+    )));
     if let Some(ref exp) = quote.expired_at {
-        doc.push(Paragraph::new(format!("Expires: {}", exp.format("%Y-%m-%d"))));
+        doc.push(Paragraph::new(format!(
+            "Expires: {}",
+            exp.format("%Y-%m-%d")
+        )));
     }
     if let Some(ref desc) = quote.description {
         doc.push(Break::new(0.5));
@@ -648,7 +691,12 @@ fn generate_quote_pdf(
         if let Some(obj) = addr.as_object() {
             let parts: Vec<String> = ["address", "city", "state", "postcode", "country"]
                 .iter()
-                .filter_map(|k| obj.get(*k).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(String::from))
+                .filter_map(|k| {
+                    obj.get(*k)
+                        .and_then(|v| v.as_str())
+                        .filter(|s| !s.is_empty())
+                        .map(String::from)
+                })
                 .collect();
             if !parts.is_empty() {
                 doc.push(Paragraph::new(parts.join(", ")));
@@ -662,7 +710,12 @@ fn generate_quote_pdf(
         if let Some(obj) = addr.as_object() {
             let parts: Vec<String> = ["address", "city", "state", "postcode", "country"]
                 .iter()
-                .filter_map(|k| obj.get(*k).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(String::from))
+                .filter_map(|k| {
+                    obj.get(*k)
+                        .and_then(|v| v.as_str())
+                        .filter(|s| !s.is_empty())
+                        .map(String::from)
+                })
                 .collect();
             if !parts.is_empty() {
                 doc.push(Paragraph::new(parts.join(", ")));
@@ -676,23 +729,46 @@ fn generate_quote_pdf(
     doc.push(Break::new(0.5));
 
     let mut table = TableLayout::new(vec![1, 3, 1, 1, 1, 1]);
-    table.set_cell_decorator(genpdfi::elements::FrameCellDecorator::new(true, true, false));
+    table.set_cell_decorator(genpdfi::elements::FrameCellDecorator::new(
+        true, true, false,
+    ));
 
     // Header row
-    table.row()
+    table
+        .row()
         .element(Paragraph::new("#").styled(bold_style))
         .element(Paragraph::new("Item").styled(bold_style))
-        .element(Paragraph::new("Qty").aligned(Alignment::Center).styled(bold_style))
-        .element(Paragraph::new("Price").aligned(Alignment::Right).styled(bold_style))
-        .element(Paragraph::new("Disc %").aligned(Alignment::Right).styled(bold_style))
-        .element(Paragraph::new("Total").aligned(Alignment::Right).styled(bold_style))
+        .element(
+            Paragraph::new("Qty")
+                .aligned(Alignment::Center)
+                .styled(bold_style),
+        )
+        .element(
+            Paragraph::new("Price")
+                .aligned(Alignment::Right)
+                .styled(bold_style),
+        )
+        .element(
+            Paragraph::new("Disc %")
+                .aligned(Alignment::Right)
+                .styled(bold_style),
+        )
+        .element(
+            Paragraph::new("Total")
+                .aligned(Alignment::Right)
+                .styled(bold_style),
+        )
         .push()
         .ok();
 
     for (i, item) in items.iter().enumerate() {
         let name = item.name.as_deref().unwrap_or("-");
-        let disc = item.discount_percent.map(|d| format!("{}%", d)).unwrap_or_default();
-        table.row()
+        let disc = item
+            .discount_percent
+            .map(|d| format!("{}%", d))
+            .unwrap_or_default();
+        table
+            .row()
             .element(Paragraph::new(format!("{}", i + 1)))
             .element(Paragraph::new(name))
             .element(Paragraph::new(format!("{}", item.quantity)).aligned(Alignment::Center))
@@ -710,27 +786,31 @@ fn generate_quote_pdf(
     if let Some(ref sub) = quote.sub_total {
         doc.push(Paragraph::new(format!("Subtotal: ${sub}")).aligned(Alignment::Right));
     }
-    if let Some(ref dp) = quote.discount_percent {
-        if *dp > Decimal::ZERO {
-            let da = quote.discount_amount.unwrap_or_default();
-            doc.push(Paragraph::new(format!("Discount ({dp}%): -${da}")).aligned(Alignment::Right));
-        }
+    if let Some(ref dp) = quote.discount_percent
+        && *dp > Decimal::ZERO
+    {
+        let da = quote.discount_amount.unwrap_or_default();
+        doc.push(Paragraph::new(format!("Discount ({dp}%): -${da}")).aligned(Alignment::Right));
     }
-    if let Some(ref tax) = quote.tax_amount {
-        if *tax > Decimal::ZERO {
-            doc.push(Paragraph::new(format!("Tax: ${tax}")).aligned(Alignment::Right));
-        }
+    if let Some(ref tax) = quote.tax_amount
+        && *tax > Decimal::ZERO
+    {
+        doc.push(Paragraph::new(format!("Tax: ${tax}")).aligned(Alignment::Right));
     }
-    if let Some(ref adj) = quote.adjustment_amount {
-        if *adj != Decimal::ZERO {
-            doc.push(Paragraph::new(format!("Adjustment: ${adj}")).aligned(Alignment::Right));
-        }
+    if let Some(ref adj) = quote.adjustment_amount
+        && *adj != Decimal::ZERO
+    {
+        doc.push(Paragraph::new(format!("Adjustment: ${adj}")).aligned(Alignment::Right));
     }
 
     doc.push(Break::new(0.5));
     let grand = quote.grand_total.unwrap_or_default();
     let total_style = Style::new().bold().with_font_size(14);
-    doc.push(Paragraph::new(format!("Grand Total: ${grand}")).aligned(Alignment::Right).styled(total_style));
+    doc.push(
+        Paragraph::new(format!("Grand Total: ${grand}"))
+            .aligned(Alignment::Right)
+            .styled(total_style),
+    );
 
     let mut buf = Vec::new();
     doc.render(&mut buf)?;

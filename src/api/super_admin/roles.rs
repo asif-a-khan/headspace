@@ -1,7 +1,7 @@
+use axum::Json;
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 
 use crate::db::Database;
@@ -17,12 +17,10 @@ pub struct RolePayload {
 }
 
 pub async fn list(Extension(db): Extension<Database>) -> Response {
-    let roles = sqlx::query_as::<_, SuperRole>(
-        "SELECT * FROM main.super_roles ORDER BY id DESC",
-    )
-    .fetch_all(db.reader())
-    .await
-    .unwrap_or_default();
+    let roles = sqlx::query_as::<_, SuperRole>("SELECT * FROM main.super_roles ORDER BY id DESC")
+        .fetch_all(db.reader())
+        .await
+        .unwrap_or_default();
 
     Json(serde_json::json!({ "data": roles })).into_response()
 }
@@ -60,16 +58,11 @@ pub async fn store(
     }
 }
 
-pub async fn show(
-    Extension(db): Extension<Database>,
-    Path(id): Path<i64>,
-) -> Response {
-    let role = sqlx::query_as::<_, SuperRole>(
-        "SELECT * FROM main.super_roles WHERE id = $1",
-    )
-    .bind(id)
-    .fetch_optional(db.reader())
-    .await;
+pub async fn show(Extension(db): Extension<Database>, Path(id): Path<i64>) -> Response {
+    let role = sqlx::query_as::<_, SuperRole>("SELECT * FROM main.super_roles WHERE id = $1")
+        .bind(id)
+        .fetch_optional(db.reader())
+        .await;
 
     match role {
         Ok(Some(r)) => Json(serde_json::json!({ "data": r })).into_response(),
@@ -144,13 +137,12 @@ pub async fn destroy(
     }
 
     // Can't delete a role that has agents assigned to it
-    let agent_count: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM main.super_admins WHERE role_id = $1",
-    )
-    .bind(id)
-    .fetch_one(db.reader())
-    .await
-    .unwrap_or((0,));
+    let agent_count: (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM main.super_admins WHERE role_id = $1")
+            .bind(id)
+            .fetch_one(db.reader())
+            .await
+            .unwrap_or((0,));
 
     if agent_count.0 > 0 {
         return (

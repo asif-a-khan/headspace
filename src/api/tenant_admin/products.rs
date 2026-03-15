@@ -1,14 +1,14 @@
+use axum::Json;
 use axum::extract::{Extension, Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use validator::Validate;
 
 use crate::auth::bouncer::{bouncer, validate_payload};
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::product::Product;
 use crate::models::tenant_admin::TenantUser;
@@ -29,7 +29,9 @@ pub async fn list(
     Extension(company): Extension<Company>,
     Extension(user): Extension<TenantUser>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "products") { return resp; }
+    if let Err(resp) = bouncer(&user, "products") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -62,8 +64,12 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<ProductPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "products.create") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "products.create") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -114,7 +120,9 @@ pub async fn show(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "products.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "products.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -153,8 +161,12 @@ pub async fn update(
     Path(id): Path<i64>,
     Json(payload): Json<ProductPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "products.edit") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "products.edit") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -173,8 +185,8 @@ pub async fn update(
             .bind(&payload.sku)
             .bind(&payload.name)
             .bind(&payload.description)
-            .bind(&payload.price)
-            .bind(&payload.quantity)
+            .bind(payload.price)
+            .bind(payload.quantity)
             .bind(id),
         )
         .await;
@@ -208,7 +220,9 @@ pub async fn destroy(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "products.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "products.delete") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -257,9 +271,12 @@ pub async fn mass_delete(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<MassDeletePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "products.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "products.delete") {
+        return resp;
+    }
     if payload.ids.is_empty() {
-        return Json(serde_json::json!({ "message": "No products selected.", "deleted_count": 0 })).into_response();
+        return Json(serde_json::json!({ "message": "No products selected.", "deleted_count": 0 }))
+            .into_response();
     }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
@@ -271,7 +288,9 @@ pub async fn mass_delete(
     };
 
     let result = guard
-        .execute(sqlx::query("DELETE FROM products WHERE id = ANY($1::bigint[])").bind(&payload.ids))
+        .execute(
+            sqlx::query("DELETE FROM products WHERE id = ANY($1::bigint[])").bind(&payload.ids),
+        )
         .await;
 
     let _ = guard.release().await;
@@ -283,7 +302,11 @@ pub async fn mass_delete(
         }
         Err(e) => {
             tracing::error!("Failed to mass delete products: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed to delete products." }))).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Failed to delete products." })),
+            )
+                .into_response()
         }
     }
 }
@@ -299,7 +322,9 @@ pub async fn search(
     Extension(user): Extension<TenantUser>,
     Query(query): Query<SearchQuery>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "products") { return resp; }
+    if let Err(resp) = bouncer(&user, "products") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,

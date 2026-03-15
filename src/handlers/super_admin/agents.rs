@@ -39,12 +39,10 @@ pub async fn create(
     Extension(admin): Extension<SuperAdmin>,
 ) -> Response {
     let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
-    let roles = sqlx::query_as::<_, SuperRole>(
-        "SELECT * FROM main.super_roles ORDER BY name",
-    )
-    .fetch_all(db.reader())
-    .await
-    .unwrap_or_default();
+    let roles = sqlx::query_as::<_, SuperRole>("SELECT * FROM main.super_roles ORDER BY name")
+        .fetch_all(db.reader())
+        .await
+        .unwrap_or_default();
 
     let initial_data = serde_json::json!({
         "roles": roles,
@@ -72,12 +70,10 @@ pub async fn edit(
     .ok()
     .flatten();
 
-    let roles = sqlx::query_as::<_, SuperRole>(
-        "SELECT * FROM main.super_roles ORDER BY name",
-    )
-    .fetch_all(db.reader())
-    .await
-    .unwrap_or_default();
+    let roles = sqlx::query_as::<_, SuperRole>("SELECT * FROM main.super_roles ORDER BY name")
+        .fetch_all(db.reader())
+        .await
+        .unwrap_or_default();
 
     let initial_data = serde_json::json!({
         "agent": agent,

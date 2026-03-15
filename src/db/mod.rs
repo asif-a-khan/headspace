@@ -5,8 +5,8 @@ pub mod migrate;
 pub mod seed;
 pub mod tenant;
 
-use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 use std::time::Duration;
 
 #[derive(Clone)]

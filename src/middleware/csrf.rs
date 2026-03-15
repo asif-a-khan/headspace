@@ -3,11 +3,11 @@
 //! Generates per-session CSRF tokens. Validates tokens on
 //! POST/PUT/DELETE requests via the X-CSRF-Token header.
 
+use axum::Json;
 use axum::extract::Request;
 use axum::http::{Method, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use rand::distr::{Alphanumeric, SampleString};
 use rand::rng;
 use tower_sessions::Session;
@@ -50,10 +50,7 @@ pub async fn require_csrf(session: Session, req: Request, next: Next) -> Respons
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 
-    let session_token: Option<String> = session
-        .get(CSRF_SESSION_KEY)
-        .await
-        .unwrap_or(None);
+    let session_token: Option<String> = session.get(CSRF_SESSION_KEY).await.unwrap_or(None);
 
     let valid = match session_token {
         Some(expected) if !expected.is_empty() => expected == header_token,
@@ -63,7 +60,9 @@ pub async fn require_csrf(session: Session, req: Request, next: Next) -> Respons
     if !valid {
         return (
             StatusCode::FORBIDDEN,
-            Json(serde_json::json!({ "error": "Invalid CSRF token. Please refresh and try again." })),
+            Json(
+                serde_json::json!({ "error": "Invalid CSRF token. Please refresh and try again." }),
+            ),
         )
             .into_response();
     }

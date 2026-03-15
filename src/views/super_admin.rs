@@ -40,7 +40,13 @@ fn authenticated_page(
     csrf_token: String,
     initial_data: String,
 ) -> (String, &'static str, String, String, String) {
-    (csrf_token, page, initial_data, vite::js_file(), vite::css_file())
+    (
+        csrf_token,
+        page,
+        initial_data,
+        vite::js_file(),
+        vite::css_file(),
+    )
 }
 
 // -- Tenants --
@@ -59,7 +65,13 @@ impl TenantIndex {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("tenant-list", csrf_token, initial_data);
-        Self { csrf_token, page, initial_data, js_file, css_file }
+        Self {
+            csrf_token,
+            page,
+            initial_data,
+            js_file,
+            css_file,
+        }
     }
 }
 
@@ -77,7 +89,13 @@ impl TenantCreate {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("tenant-form", csrf_token, initial_data);
-        Self { csrf_token, page, initial_data, js_file, css_file }
+        Self {
+            csrf_token,
+            page,
+            initial_data,
+            js_file,
+            css_file,
+        }
     }
 }
 
@@ -95,7 +113,13 @@ impl TenantEdit {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("tenant-form", csrf_token, initial_data);
-        Self { csrf_token, page, initial_data, js_file, css_file }
+        Self {
+            csrf_token,
+            page,
+            initial_data,
+            js_file,
+            css_file,
+        }
     }
 }
 
@@ -115,7 +139,13 @@ impl SettingsIndex {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("settings", csrf_token, initial_data);
-        Self { csrf_token, page, initial_data, js_file, css_file }
+        Self {
+            csrf_token,
+            page,
+            initial_data,
+            js_file,
+            css_file,
+        }
     }
 }
 
@@ -135,7 +165,13 @@ impl AgentIndex {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("agent-list", csrf_token, initial_data);
-        Self { csrf_token, page, initial_data, js_file, css_file }
+        Self {
+            csrf_token,
+            page,
+            initial_data,
+            js_file,
+            css_file,
+        }
     }
 }
 
@@ -153,7 +189,13 @@ impl AgentCreate {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("agent-form", csrf_token, initial_data);
-        Self { csrf_token, page, initial_data, js_file, css_file }
+        Self {
+            csrf_token,
+            page,
+            initial_data,
+            js_file,
+            css_file,
+        }
     }
 }
 
@@ -171,7 +213,13 @@ impl AgentEdit {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("agent-form", csrf_token, initial_data);
-        Self { csrf_token, page, initial_data, js_file, css_file }
+        Self {
+            csrf_token,
+            page,
+            initial_data,
+            js_file,
+            css_file,
+        }
     }
 }
 
@@ -191,7 +239,13 @@ impl RoleIndex {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("role-list", csrf_token, initial_data);
-        Self { csrf_token, page, initial_data, js_file, css_file }
+        Self {
+            csrf_token,
+            page,
+            initial_data,
+            js_file,
+            css_file,
+        }
     }
 }
 
@@ -209,7 +263,13 @@ impl RoleCreate {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("role-form", csrf_token, initial_data);
-        Self { csrf_token, page, initial_data, js_file, css_file }
+        Self {
+            csrf_token,
+            page,
+            initial_data,
+            js_file,
+            css_file,
+        }
     }
 }
 
@@ -227,7 +287,13 @@ impl RoleEdit {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("role-form", csrf_token, initial_data);
-        Self { csrf_token, page, initial_data, js_file, css_file }
+        Self {
+            csrf_token,
+            page,
+            initial_data,
+            js_file,
+            css_file,
+        }
     }
 }
 
@@ -247,6 +313,12 @@ impl AccountEdit {
     pub fn new(csrf_token: String, initial_data: String) -> Self {
         let (csrf_token, page, initial_data, js_file, css_file) =
             authenticated_page("account-form", csrf_token, initial_data);
-        Self { csrf_token, page, initial_data, js_file, css_file }
+        Self {
+            csrf_token,
+            page,
+            initial_data,
+            js_file,
+            css_file,
+        }
     }
 }

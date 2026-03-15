@@ -1,20 +1,22 @@
+use axum::Json;
 use axum::extract::{Extension, Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use validator::Validate;
 
 use crate::auth::bouncer::{bouncer, validate_payload};
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
-use crate::models::lead::{Lead, LeadKanbanCard, LeadProduct, LeadProductRow, LeadRow, LeadSearchRow};
+use crate::models::lead::{
+    Lead, LeadKanbanCard, LeadProduct, LeadProductRow, LeadRow, LeadSearchRow,
+};
 use crate::models::tenant_admin::TenantUser;
 
-use crate::api::pagination::CountRow;
 use super::contacts::view_permission_filter;
+use crate::api::pagination::CountRow;
 
 #[derive(Deserialize)]
 pub struct LeadProductInput {
@@ -61,7 +63,9 @@ pub async fn list(
     Extension(user): Extension<TenantUser>,
     Query(query): Query<ListQuery>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -78,7 +82,9 @@ pub async fn list(
         .map(|pid| format!(" AND l.lead_pipeline_id = {pid}"))
         .unwrap_or_default();
 
-    let search_filter = query.search.as_deref()
+    let search_filter = query
+        .search
+        .as_deref()
         .filter(|s| s.len() >= 2)
         .map(|s| {
             let escaped = s.replace('\'', "''");
@@ -102,23 +108,33 @@ pub async fn list(
     let offset = (page - 1) * per_page;
 
     let allowed_sorts: &[(&str, &str)] = &[
-        ("id", "l.id"), ("title", "l.title"), ("lead_value", "l.lead_value"),
-        ("person_name", "p.name"), ("created_at", "l.created_at"),
+        ("id", "l.id"),
+        ("title", "l.title"),
+        ("lead_value", "l.lead_value"),
+        ("person_name", "p.name"),
+        ("created_at", "l.created_at"),
     ];
     let sort_dir = match query.sort_dir.as_deref() {
         Some("asc" | "ASC") => "ASC",
         _ => "DESC",
     };
-    let order_col = query.sort_field.as_deref()
-        .and_then(|f| allowed_sorts.iter().find(|(name, _)| *name == f).map(|(_, col)| *col))
+    let order_col = query
+        .sort_field
+        .as_deref()
+        .and_then(|f| {
+            allowed_sorts
+                .iter()
+                .find(|(name, _)| *name == f)
+                .map(|(_, col)| *col)
+        })
         .unwrap_or("l.id");
     let order_by = format!("{order_col} {sort_dir}");
 
     // Count
     let total = guard
-        .fetch_one(sqlx::query_as::<_, CountRow>(
-            &format!("SELECT COUNT(*) AS count {from_clause} {where_clause}"),
-        ))
+        .fetch_one(sqlx::query_as::<_, CountRow>(&format!(
+            "SELECT COUNT(*) AS count {from_clause} {where_clause}"
+        )))
         .await
         .map(|r| r.count.unwrap_or(0))
         .unwrap_or(0);
@@ -143,13 +159,18 @@ pub async fn list(
     let leads = guard.fetch_all(sqlx::query_as::<_, LeadRow>(&sql)).await;
     let _ = guard.release().await;
 
-    let last_page = if per_page > 0 { (total + per_page - 1) / per_page } else { 1 };
+    let last_page = if per_page > 0 {
+        (total + per_page - 1) / per_page
+    } else {
+        1
+    };
 
     match leads {
         Ok(l) => Json(serde_json::json!({
             "data": l,
             "meta": { "total": total, "page": page, "per_page": per_page, "last_page": last_page }
-        })).into_response(),
+        }))
+        .into_response(),
         Err(e) => {
             tracing::error!("Failed to list leads: {e}");
             internal_error()
@@ -163,7 +184,9 @@ pub async fn kanban(
     Extension(user): Extension<TenantUser>,
     Query(query): Query<ListQuery>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -224,7 +247,9 @@ pub async fn search(
     Extension(user): Extension<TenantUser>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads") {
+        return resp;
+    }
 
     let q = params.get("q").map(|s| s.as_str()).unwrap_or("");
     if q.len() < 2 {
@@ -261,8 +286,12 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<LeadPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads.create") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "leads.create") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -288,34 +317,36 @@ pub async fn store(
             )
             .bind(&payload.title)
             .bind(&payload.description)
-            .bind(&payload.lead_value)
+            .bind(payload.lead_value)
             .bind(expected_close)
-            .bind(&payload.person_id)
-            .bind(&payload.lead_source_id)
-            .bind(&payload.lead_type_id)
-            .bind(&payload.lead_pipeline_id)
-            .bind(&payload.lead_pipeline_stage_id)
+            .bind(payload.person_id)
+            .bind(payload.lead_source_id)
+            .bind(payload.lead_type_id)
+            .bind(payload.lead_pipeline_id)
+            .bind(payload.lead_pipeline_stage_id)
             .bind(assigned_user),
         )
         .await;
 
     // Insert products if provided
-    if let Ok(ref lead) = result {
-        if let Some(ref products) = payload.products {
-            for p in products {
-                let amount = p.price * Decimal::from(p.quantity);
-                let _ = guard.execute(
+    if let Ok(ref lead) = result
+        && let Some(ref products) = payload.products
+    {
+        for p in products {
+            let amount = p.price * Decimal::from(p.quantity);
+            let _ = guard
+                .execute(
                     sqlx::query(
                         "INSERT INTO lead_products (lead_id, product_id, quantity, price, amount)
-                         VALUES ($1, $2, $3, $4, $5)"
+                         VALUES ($1, $2, $3, $4, $5)",
                     )
                     .bind(lead.id)
                     .bind(p.product_id)
                     .bind(p.quantity)
                     .bind(p.price)
                     .bind(amount),
-                ).await;
-            }
+                )
+                .await;
         }
     }
 
@@ -344,7 +375,9 @@ pub async fn show(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -356,9 +389,9 @@ pub async fn show(
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let lead = guard
-        .fetch_optional(sqlx::query_as::<_, Lead>(&format!(
-            "SELECT * FROM leads WHERE id = $1{vp}"
-        )).bind(id))
+        .fetch_optional(
+            sqlx::query_as::<_, Lead>(&format!("SELECT * FROM leads WHERE id = $1{vp}")).bind(id),
+        )
         .await;
 
     let _ = guard.release().await;
@@ -384,8 +417,12 @@ pub async fn update(
     Path(id): Path<i64>,
     Json(payload): Json<LeadPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads.edit") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "leads.edit") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -413,38 +450,40 @@ pub async fn update(
             ))
             .bind(&payload.title)
             .bind(&payload.description)
-            .bind(&payload.lead_value)
+            .bind(payload.lead_value)
             .bind(expected_close)
-            .bind(&payload.person_id)
-            .bind(&payload.lead_source_id)
-            .bind(&payload.lead_type_id)
-            .bind(&payload.lead_pipeline_id)
-            .bind(&payload.lead_pipeline_stage_id)
-            .bind(&payload.user_id)
+            .bind(payload.person_id)
+            .bind(payload.lead_source_id)
+            .bind(payload.lead_type_id)
+            .bind(payload.lead_pipeline_id)
+            .bind(payload.lead_pipeline_stage_id)
+            .bind(payload.user_id)
             .bind(id),
         )
         .await;
 
     // Sync products if provided (delete all + re-insert)
-    if let Ok(Some(_)) = &result {
-        if let Some(ref products) = payload.products {
-            let _ = guard.execute(
-                sqlx::query("DELETE FROM lead_products WHERE lead_id = $1").bind(id)
-            ).await;
-            for p in products {
-                let amount = p.price * Decimal::from(p.quantity);
-                let _ = guard.execute(
+    if let Ok(Some(_)) = &result
+        && let Some(ref products) = payload.products
+    {
+        let _ = guard
+            .execute(sqlx::query("DELETE FROM lead_products WHERE lead_id = $1").bind(id))
+            .await;
+        for p in products {
+            let amount = p.price * Decimal::from(p.quantity);
+            let _ = guard
+                .execute(
                     sqlx::query(
                         "INSERT INTO lead_products (lead_id, product_id, quantity, price, amount)
-                         VALUES ($1, $2, $3, $4, $5)"
+                         VALUES ($1, $2, $3, $4, $5)",
                     )
                     .bind(id)
                     .bind(p.product_id)
                     .bind(p.quantity)
                     .bind(p.price)
                     .bind(amount),
-                ).await;
-            }
+                )
+                .await;
         }
     }
 
@@ -478,7 +517,9 @@ pub async fn update_stage(
     Path(id): Path<i64>,
     Json(payload): Json<StagePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -490,11 +531,14 @@ pub async fn update_stage(
 
     // Look up the target stage's code to determine won/lost/normal
     let stage_code = guard
-        .fetch_optional(sqlx::query_as::<_, (String,)>(
-            "SELECT ls.code FROM lead_pipeline_stages lps
+        .fetch_optional(
+            sqlx::query_as::<_, (String,)>(
+                "SELECT ls.code FROM lead_pipeline_stages lps
              JOIN lead_stages ls ON ls.id = lps.lead_stage_id
              WHERE lps.id = $1",
-        ).bind(payload.lead_pipeline_stage_id))
+            )
+            .bind(payload.lead_pipeline_stage_id),
+        )
         .await;
 
     let stage_code = match stage_code {
@@ -568,21 +612,25 @@ pub async fn update_status(
     Path(id): Path<i64>,
     Json(payload): Json<StatusPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads.edit") {
+        return resp;
+    }
 
-    let (status_val, lost_reason, set_closed): (Option<bool>, Option<String>, bool) =
-        match payload.status.as_str() {
-            "won" => (Some(true), None, true),
-            "lost" => (Some(false), payload.lost_reason, true),
-            "open" => (None, None, false),
-            _ => {
-                return (
-                    StatusCode::UNPROCESSABLE_ENTITY,
-                    Json(serde_json::json!({ "error": "Status must be 'won', 'lost', or 'open'." })),
-                )
-                    .into_response();
-            }
-        };
+    let (status_val, lost_reason, set_closed): (Option<bool>, Option<String>, bool) = match payload
+        .status
+        .as_str()
+    {
+        "won" => (Some(true), None, true),
+        "lost" => (Some(false), payload.lost_reason, true),
+        "open" => (None, None, false),
+        _ => {
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "Status must be 'won', 'lost', or 'open'." })),
+            )
+                .into_response();
+        }
+    };
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -599,12 +647,16 @@ pub async fn update_status(
     let stage_update = if let Some(sv) = status_val {
         let target_code = if sv { "won" } else { "lost" };
         guard
-            .fetch_optional(sqlx::query_as::<_, (i64,)>(
-                "SELECT lps.id FROM lead_pipeline_stages lps
+            .fetch_optional(
+                sqlx::query_as::<_, (i64,)>(
+                    "SELECT lps.id FROM lead_pipeline_stages lps
                  JOIN lead_stages ls ON ls.id = lps.lead_stage_id
                  WHERE lps.lead_pipeline_id = (SELECT lead_pipeline_id FROM leads WHERE id = $1)
                  AND ls.code = $2",
-            ).bind(id).bind(target_code))
+                )
+                .bind(id)
+                .bind(target_code),
+            )
             .await
             .ok()
             .flatten()
@@ -634,9 +686,8 @@ pub async fn update_status(
     let _ = guard.release().await;
 
     match result {
-        Ok(Some(l)) => {
-            Json(serde_json::json!({ "data": l, "message": "Lead status updated." })).into_response()
-        }
+        Ok(Some(l)) => Json(serde_json::json!({ "data": l, "message": "Lead status updated." }))
+            .into_response(),
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "Lead not found." })),
@@ -655,7 +706,9 @@ pub async fn destroy(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads.delete") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -705,9 +758,12 @@ pub async fn mass_delete(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<MassDeletePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads.delete") {
+        return resp;
+    }
     if payload.ids.is_empty() {
-        return Json(serde_json::json!({ "message": "No leads selected.", "deleted_count": 0 })).into_response();
+        return Json(serde_json::json!({ "message": "No leads selected.", "deleted_count": 0 }))
+            .into_response();
     }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
@@ -720,7 +776,12 @@ pub async fn mass_delete(
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let result = guard
-        .execute(sqlx::query(&format!("DELETE FROM leads WHERE id = ANY($1::bigint[]){vp}")).bind(&payload.ids))
+        .execute(
+            sqlx::query(&format!(
+                "DELETE FROM leads WHERE id = ANY($1::bigint[]){vp}"
+            ))
+            .bind(&payload.ids),
+        )
         .await;
 
     let _ = guard.release().await;
@@ -732,7 +793,11 @@ pub async fn mass_delete(
         }
         Err(e) => {
             tracing::error!("Failed to mass delete leads: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed to delete leads." }))).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Failed to delete leads." })),
+            )
+                .into_response()
         }
     }
 }
@@ -752,7 +817,9 @@ pub async fn list_products(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -794,7 +861,9 @@ pub async fn add_product(
     Path(id): Path<i64>,
     Json(payload): Json<LeadProductPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -844,7 +913,9 @@ pub async fn remove_product(
     Extension(user): Extension<TenantUser>,
     Path((lead_id, product_line_id)): Path<(i64, i64)>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -888,7 +959,9 @@ pub async fn list_quotes(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -933,7 +1006,9 @@ pub async fn link_quote(
     Path(id): Path<i64>,
     Json(payload): Json<LeadQuoteLinkPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -978,7 +1053,9 @@ pub async fn unlink_quote(
     Extension(user): Extension<TenantUser>,
     Path((lead_id, quote_id)): Path<(i64, i64)>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "leads.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "leads.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,

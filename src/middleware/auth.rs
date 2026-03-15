@@ -28,10 +28,7 @@ pub async fn require_super_admin(
     mut req: Request,
     next: Next,
 ) -> Response {
-    let admin_id: Option<i64> = session
-        .get(SUPER_ADMIN_SESSION_KEY)
-        .await
-        .unwrap_or(None);
+    let admin_id: Option<i64> = session.get(SUPER_ADMIN_SESSION_KEY).await.unwrap_or(None);
 
     let Some(admin_id) = admin_id else {
         return redirect_to_login();
@@ -104,10 +101,7 @@ pub async fn require_tenant_admin(
     mut req: Request,
     next: Next,
 ) -> Response {
-    let admin_id: Option<i64> = session
-        .get(TENANT_ADMIN_SESSION_KEY)
-        .await
-        .unwrap_or(None);
+    let admin_id: Option<i64> = session.get(TENANT_ADMIN_SESSION_KEY).await.unwrap_or(None);
 
     let Some(admin_id) = admin_id else {
         return redirect_to_admin_login();
@@ -121,16 +115,17 @@ pub async fn require_tenant_admin(
         }
     };
 
-    let user = guard.fetch_optional(
-        sqlx::query_as::<_, TenantUser>(
-            "SELECT u.*, r.permission_type, r.permissions AS role_permissions
+    let user = guard
+        .fetch_optional(
+            sqlx::query_as::<_, TenantUser>(
+                "SELECT u.*, r.permission_type, r.permissions AS role_permissions
              FROM users u
              JOIN roles r ON r.id = u.role_id
              WHERE u.id = $1 AND u.status = true",
+            )
+            .bind(admin_id),
         )
-        .bind(admin_id),
-    )
-    .await;
+        .await;
 
     let _ = guard.release().await;
 

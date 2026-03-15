@@ -2,8 +2,8 @@ use axum::extract::{Extension, Path};
 use axum::response::{IntoResponse, Response};
 use tower_sessions::Session;
 
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::middleware::csrf::get_csrf_token;
 use crate::models::company::Company;
 use crate::models::pipeline::{LeadPipeline, LeadSource, LeadStage, LeadType, PipelineStageDetail};
@@ -28,7 +28,9 @@ pub async fn pipelines_index(
     };
 
     let pipelines = guard
-        .fetch_all(sqlx::query_as::<_, LeadPipeline>("SELECT * FROM lead_pipelines ORDER BY id"))
+        .fetch_all(sqlx::query_as::<_, LeadPipeline>(
+            "SELECT * FROM lead_pipelines ORDER BY id",
+        ))
         .await
         .unwrap_or_default();
 
@@ -58,7 +60,9 @@ pub async fn pipelines_create(
     };
 
     let stages = guard
-        .fetch_all(sqlx::query_as::<_, LeadStage>("SELECT * FROM lead_stages ORDER BY id"))
+        .fetch_all(sqlx::query_as::<_, LeadStage>(
+            "SELECT * FROM lead_stages ORDER BY id",
+        ))
         .await
         .unwrap_or_default();
 
@@ -87,24 +91,32 @@ pub async fn pipelines_edit(
     };
 
     let pipeline = guard
-        .fetch_optional(sqlx::query_as::<_, LeadPipeline>("SELECT * FROM lead_pipelines WHERE id = $1").bind(id))
+        .fetch_optional(
+            sqlx::query_as::<_, LeadPipeline>("SELECT * FROM lead_pipelines WHERE id = $1")
+                .bind(id),
+        )
         .await
         .ok()
         .flatten();
 
     let pipeline_stages = guard
-        .fetch_all(sqlx::query_as::<_, PipelineStageDetail>(
-            "SELECT ps.*, ls.code AS stage_code, ls.name AS stage_name
+        .fetch_all(
+            sqlx::query_as::<_, PipelineStageDetail>(
+                "SELECT ps.*, ls.code AS stage_code, ls.name AS stage_name
              FROM lead_pipeline_stages ps
              JOIN lead_stages ls ON ls.id = ps.lead_stage_id
              WHERE ps.lead_pipeline_id = $1
              ORDER BY ps.sort_order",
-        ).bind(id))
+            )
+            .bind(id),
+        )
         .await
         .unwrap_or_default();
 
     let stages = guard
-        .fetch_all(sqlx::query_as::<_, LeadStage>("SELECT * FROM lead_stages ORDER BY id"))
+        .fetch_all(sqlx::query_as::<_, LeadStage>(
+            "SELECT * FROM lead_stages ORDER BY id",
+        ))
         .await
         .unwrap_or_default();
 
@@ -136,7 +148,9 @@ pub async fn sources_index(
     };
 
     let sources = guard
-        .fetch_all(sqlx::query_as::<_, LeadSource>("SELECT * FROM lead_sources ORDER BY id"))
+        .fetch_all(sqlx::query_as::<_, LeadSource>(
+            "SELECT * FROM lead_sources ORDER BY id",
+        ))
         .await
         .unwrap_or_default();
 
@@ -168,7 +182,9 @@ pub async fn types_index(
     };
 
     let types = guard
-        .fetch_all(sqlx::query_as::<_, LeadType>("SELECT * FROM lead_types ORDER BY id"))
+        .fetch_all(sqlx::query_as::<_, LeadType>(
+            "SELECT * FROM lead_types ORDER BY id",
+        ))
         .await
         .unwrap_or_default();
 

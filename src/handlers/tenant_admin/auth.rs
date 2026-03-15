@@ -7,10 +7,7 @@ use crate::middleware::csrf::get_csrf_token;
 use crate::models::company::Company;
 use crate::views::tenant_admin::LoginPage;
 
-pub async fn login_page(
-    session: Session,
-    Extension(company): Extension<Company>,
-) -> Response {
+pub async fn login_page(session: Session, Extension(company): Extension<Company>) -> Response {
     let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
     let initial_data = serde_json::json!({
         "company_name": company.name,

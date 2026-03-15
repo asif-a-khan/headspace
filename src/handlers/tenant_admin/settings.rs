@@ -2,15 +2,15 @@ use axum::extract::{Extension, Path};
 use axum::response::{IntoResponse, Response};
 use tower_sessions::Session;
 
-use crate::auth::acl::{flatten_acl, TENANT_ADMIN_ACL};
-use crate::db::guard::TenantGuard;
+use crate::api::tenant_admin::config::load_tenant_config;
+use crate::auth::acl::{TENANT_ADMIN_ACL, flatten_acl};
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::middleware::csrf::get_csrf_token;
 use crate::models::company::Company;
 use crate::models::group::Group;
-use crate::models::tenant_admin::{TenantRole, TenantUser};
-use crate::api::tenant_admin::config::load_tenant_config;
 use crate::models::tag::Tag;
+use crate::models::tenant_admin::{TenantRole, TenantUser};
 use crate::views::tenant_admin::{
     ConfigurationIndex, GroupCreate, GroupEdit, GroupIndex, RoleCreate, RoleEdit, RoleIndex,
     SettingsIndex, TagIndex, UserCreate, UserEdit, UserIndex,
@@ -127,22 +127,24 @@ pub async fn users_edit(
     };
 
     let edit_user = guard
-        .fetch_optional(sqlx::query_as::<_, TenantUser>(
-            "SELECT u.*, r.permission_type, r.permissions AS role_permissions
+        .fetch_optional(
+            sqlx::query_as::<_, TenantUser>(
+                "SELECT u.*, r.permission_type, r.permissions AS role_permissions
              FROM users u
              JOIN roles r ON r.id = u.role_id
              WHERE u.id = $1",
+            )
+            .bind(id),
         )
-        .bind(id))
         .await
         .ok()
         .flatten();
 
     let group_ids = guard
-        .fetch_all(sqlx::query_as::<_, (i64,)>(
-            "SELECT group_id FROM user_groups WHERE user_id = $1",
+        .fetch_all(
+            sqlx::query_as::<_, (i64,)>("SELECT group_id FROM user_groups WHERE user_id = $1")
+                .bind(id),
         )
-        .bind(id))
         .await
         .unwrap_or_default()
         .into_iter()
@@ -244,10 +246,9 @@ pub async fn roles_edit(
     };
 
     let role = guard
-        .fetch_optional(sqlx::query_as::<_, TenantRole>(
-            "SELECT * FROM roles WHERE id = $1",
+        .fetch_optional(
+            sqlx::query_as::<_, TenantRole>("SELECT * FROM roles WHERE id = $1").bind(id),
         )
-        .bind(id))
         .await
         .ok()
         .flatten();
@@ -330,10 +331,7 @@ pub async fn groups_edit(
     };
 
     let group = guard
-        .fetch_optional(sqlx::query_as::<_, Group>(
-            "SELECT * FROM groups WHERE id = $1",
-        )
-        .bind(id))
+        .fetch_optional(sqlx::query_as::<_, Group>("SELECT * FROM groups WHERE id = $1").bind(id))
         .await
         .ok()
         .flatten();

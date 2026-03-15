@@ -2,8 +2,8 @@ use axum::extract::{Extension, Path};
 use axum::response::{IntoResponse, Response};
 use tower_sessions::Session;
 
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::middleware::csrf::get_csrf_token;
 use crate::models::company::Company;
 use crate::models::product::Product;
@@ -93,8 +93,8 @@ pub async fn create(
     let mut pre_person_id: Option<i64> = None;
     let mut pre_user_id: Option<i64> = None;
 
-    if let Some(lid) = lead_id {
-        if let Ok(Some(row)) = guard
+    if let Some(lid) = lead_id
+        && let Ok(Some(row)) = guard
             .fetch_optional(
                 sqlx::query_as::<_, (Option<i64>, Option<i64>)>(
                     "SELECT person_id, user_id FROM leads WHERE id = $1",
@@ -102,10 +102,9 @@ pub async fn create(
                 .bind(lid),
             )
             .await
-        {
-            pre_person_id = row.0;
-            pre_user_id = row.1;
-        }
+    {
+        pre_person_id = row.0;
+        pre_user_id = row.1;
     }
 
     let _ = guard.release().await;
@@ -141,10 +140,8 @@ pub async fn edit(
 
     let quote = guard
         .fetch_optional(
-            sqlx::query_as::<_, crate::models::quote::Quote>(
-                "SELECT * FROM quotes WHERE id = $1",
-            )
-            .bind(id),
+            sqlx::query_as::<_, crate::models::quote::Quote>("SELECT * FROM quotes WHERE id = $1")
+                .bind(id),
         )
         .await
         .ok()

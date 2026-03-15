@@ -1,8 +1,8 @@
 use axum::extract::{Extension, Path};
 use axum::response::{Html, IntoResponse, Response};
 
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::web_form::{WebForm, WebFormAttributeRow};
 
@@ -18,9 +18,10 @@ pub async fn render_form(
     };
 
     let form = match guard
-        .fetch_optional(sqlx::query_as::<_, WebForm>(
-            "SELECT * FROM web_forms WHERE form_id = $1",
-        ).bind(&form_id))
+        .fetch_optional(
+            sqlx::query_as::<_, WebForm>("SELECT * FROM web_forms WHERE form_id = $1")
+                .bind(&form_id),
+        )
         .await
     {
         Ok(Some(f)) => f,
@@ -31,15 +32,18 @@ pub async fn render_form(
     };
 
     let attrs = guard
-        .fetch_all(sqlx::query_as::<_, WebFormAttributeRow>(
-            "SELECT wfa.id, wfa.name, wfa.placeholder, wfa.is_required, wfa.sort_order,
+        .fetch_all(
+            sqlx::query_as::<_, WebFormAttributeRow>(
+                "SELECT wfa.id, wfa.name, wfa.placeholder, wfa.is_required, wfa.sort_order,
                     wfa.attribute_id, wfa.web_form_id,
                     a.name AS attribute_name, a.code AS attribute_code, a.type AS attribute_type
              FROM web_form_attributes wfa
              JOIN attributes a ON a.id = wfa.attribute_id
              WHERE wfa.web_form_id = $1
              ORDER BY wfa.sort_order, wfa.id",
-        ).bind(form.id))
+            )
+            .bind(form.id),
+        )
         .await
         .unwrap_or_default();
 
@@ -48,7 +52,9 @@ pub async fn render_form(
     // Build form fields HTML
     let mut fields_html = String::new();
     for attr in &attrs {
-        let label = attr.name.as_deref()
+        let label = attr
+            .name
+            .as_deref()
             .or(attr.attribute_name.as_deref())
             .unwrap_or("Field");
         let code = attr.attribute_code.as_deref().unwrap_or("field");
@@ -98,7 +104,10 @@ pub async fn render_form(
     let bg_color = form.background_color.as_deref().unwrap_or("#F7F8F9");
     let form_bg_color = form.form_background_color.as_deref().unwrap_or("#FFFFFF");
     let title_color = form.form_title_color.as_deref().unwrap_or("#263238");
-    let button_color = form.form_submit_button_color.as_deref().unwrap_or("#0E90D9");
+    let button_color = form
+        .form_submit_button_color
+        .as_deref()
+        .unwrap_or("#0E90D9");
     let description = form.description.as_deref().unwrap_or("");
 
     let html = format!(
@@ -170,7 +179,11 @@ pub async fn render_form(
 </body>
 </html>"#,
         title = html_escape(&form.title),
-        desc_html = if description.is_empty() { String::new() } else { format!(r#"<p class="description">{}</p>"#, html_escape(description)) },
+        desc_html = if description.is_empty() {
+            String::new()
+        } else {
+            format!(r#"<p class="description">{}</p>"#, html_escape(description))
+        },
         fields_html = fields_html,
         submit_label = html_escape(&form.submit_button_label),
         form_id = html_escape(&form.form_id),
@@ -185,8 +198,8 @@ pub async fn render_form(
 
 fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
-     .replace('<', "&lt;")
-     .replace('>', "&gt;")
-     .replace('"', "&quot;")
-     .replace('\'', "&#39;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
 }

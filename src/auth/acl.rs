@@ -121,35 +121,79 @@ pub static TENANT_ADMIN_ACL: &[AclItem] = &[
         key: "leads",
         name: "Leads",
         children: &[
-            AclItem { key: "leads.create", name: "Create", children: &[] },
-            AclItem { key: "leads.edit", name: "Edit", children: &[] },
-            AclItem { key: "leads.delete", name: "Delete", children: &[] },
+            AclItem {
+                key: "leads.create",
+                name: "Create",
+                children: &[],
+            },
+            AclItem {
+                key: "leads.edit",
+                name: "Edit",
+                children: &[],
+            },
+            AclItem {
+                key: "leads.delete",
+                name: "Delete",
+                children: &[],
+            },
         ],
     },
     AclItem {
         key: "quotes",
         name: "Quotes",
         children: &[
-            AclItem { key: "quotes.create", name: "Create", children: &[] },
-            AclItem { key: "quotes.edit", name: "Edit", children: &[] },
-            AclItem { key: "quotes.delete", name: "Delete", children: &[] },
+            AclItem {
+                key: "quotes.create",
+                name: "Create",
+                children: &[],
+            },
+            AclItem {
+                key: "quotes.edit",
+                name: "Edit",
+                children: &[],
+            },
+            AclItem {
+                key: "quotes.delete",
+                name: "Delete",
+                children: &[],
+            },
         ],
     },
     AclItem {
         key: "mail",
         name: "Mail",
         children: &[
-            AclItem { key: "mail.compose", name: "Compose", children: &[] },
-            AclItem { key: "mail.delete", name: "Delete", children: &[] },
+            AclItem {
+                key: "mail.compose",
+                name: "Compose",
+                children: &[],
+            },
+            AclItem {
+                key: "mail.delete",
+                name: "Delete",
+                children: &[],
+            },
         ],
     },
     AclItem {
         key: "activities",
         name: "Activities",
         children: &[
-            AclItem { key: "activities.create", name: "Create", children: &[] },
-            AclItem { key: "activities.edit", name: "Edit", children: &[] },
-            AclItem { key: "activities.delete", name: "Delete", children: &[] },
+            AclItem {
+                key: "activities.create",
+                name: "Create",
+                children: &[],
+            },
+            AclItem {
+                key: "activities.edit",
+                name: "Edit",
+                children: &[],
+            },
+            AclItem {
+                key: "activities.delete",
+                name: "Delete",
+                children: &[],
+            },
         ],
     },
     AclItem {
@@ -160,18 +204,42 @@ pub static TENANT_ADMIN_ACL: &[AclItem] = &[
                 key: "contacts.persons",
                 name: "Persons",
                 children: &[
-                    AclItem { key: "contacts.persons.create", name: "Create", children: &[] },
-                    AclItem { key: "contacts.persons.edit", name: "Edit", children: &[] },
-                    AclItem { key: "contacts.persons.delete", name: "Delete", children: &[] },
+                    AclItem {
+                        key: "contacts.persons.create",
+                        name: "Create",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "contacts.persons.edit",
+                        name: "Edit",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "contacts.persons.delete",
+                        name: "Delete",
+                        children: &[],
+                    },
                 ],
             },
             AclItem {
                 key: "contacts.organizations",
                 name: "Organizations",
                 children: &[
-                    AclItem { key: "contacts.organizations.create", name: "Create", children: &[] },
-                    AclItem { key: "contacts.organizations.edit", name: "Edit", children: &[] },
-                    AclItem { key: "contacts.organizations.delete", name: "Delete", children: &[] },
+                    AclItem {
+                        key: "contacts.organizations.create",
+                        name: "Create",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "contacts.organizations.edit",
+                        name: "Edit",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "contacts.organizations.delete",
+                        name: "Delete",
+                        children: &[],
+                    },
                 ],
             },
         ],
@@ -180,18 +248,42 @@ pub static TENANT_ADMIN_ACL: &[AclItem] = &[
         key: "products",
         name: "Products",
         children: &[
-            AclItem { key: "products.create", name: "Create", children: &[] },
-            AclItem { key: "products.edit", name: "Edit", children: &[] },
-            AclItem { key: "products.delete", name: "Delete", children: &[] },
+            AclItem {
+                key: "products.create",
+                name: "Create",
+                children: &[],
+            },
+            AclItem {
+                key: "products.edit",
+                name: "Edit",
+                children: &[],
+            },
+            AclItem {
+                key: "products.delete",
+                name: "Delete",
+                children: &[],
+            },
         ],
     },
     AclItem {
         key: "tags",
         name: "Tags",
         children: &[
-            AclItem { key: "tags.create", name: "Create", children: &[] },
-            AclItem { key: "tags.edit", name: "Edit", children: &[] },
-            AclItem { key: "tags.delete", name: "Delete", children: &[] },
+            AclItem {
+                key: "tags.create",
+                name: "Create",
+                children: &[],
+            },
+            AclItem {
+                key: "tags.edit",
+                name: "Edit",
+                children: &[],
+            },
+            AclItem {
+                key: "tags.delete",
+                name: "Delete",
+                children: &[],
+            },
         ],
     },
     AclItem {
@@ -202,63 +294,147 @@ pub static TENANT_ADMIN_ACL: &[AclItem] = &[
                 key: "settings.users",
                 name: "Users",
                 children: &[
-                    AclItem { key: "settings.users.create", name: "Create", children: &[] },
-                    AclItem { key: "settings.users.edit", name: "Edit", children: &[] },
-                    AclItem { key: "settings.users.delete", name: "Delete", children: &[] },
+                    AclItem {
+                        key: "settings.users.create",
+                        name: "Create",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.users.edit",
+                        name: "Edit",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.users.delete",
+                        name: "Delete",
+                        children: &[],
+                    },
                 ],
             },
             AclItem {
                 key: "settings.roles",
                 name: "Roles",
                 children: &[
-                    AclItem { key: "settings.roles.create", name: "Create", children: &[] },
-                    AclItem { key: "settings.roles.edit", name: "Edit", children: &[] },
-                    AclItem { key: "settings.roles.delete", name: "Delete", children: &[] },
+                    AclItem {
+                        key: "settings.roles.create",
+                        name: "Create",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.roles.edit",
+                        name: "Edit",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.roles.delete",
+                        name: "Delete",
+                        children: &[],
+                    },
                 ],
             },
             AclItem {
                 key: "settings.groups",
                 name: "Groups",
                 children: &[
-                    AclItem { key: "settings.groups.create", name: "Create", children: &[] },
-                    AclItem { key: "settings.groups.edit", name: "Edit", children: &[] },
-                    AclItem { key: "settings.groups.delete", name: "Delete", children: &[] },
+                    AclItem {
+                        key: "settings.groups.create",
+                        name: "Create",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.groups.edit",
+                        name: "Edit",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.groups.delete",
+                        name: "Delete",
+                        children: &[],
+                    },
                 ],
             },
             AclItem {
                 key: "settings.pipelines",
                 name: "Pipelines",
                 children: &[
-                    AclItem { key: "settings.pipelines.create", name: "Create", children: &[] },
-                    AclItem { key: "settings.pipelines.edit", name: "Edit", children: &[] },
-                    AclItem { key: "settings.pipelines.delete", name: "Delete", children: &[] },
+                    AclItem {
+                        key: "settings.pipelines.create",
+                        name: "Create",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.pipelines.edit",
+                        name: "Edit",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.pipelines.delete",
+                        name: "Delete",
+                        children: &[],
+                    },
                 ],
             },
             AclItem {
                 key: "settings.sources",
                 name: "Sources",
                 children: &[
-                    AclItem { key: "settings.sources.create", name: "Create", children: &[] },
-                    AclItem { key: "settings.sources.edit", name: "Edit", children: &[] },
-                    AclItem { key: "settings.sources.delete", name: "Delete", children: &[] },
+                    AclItem {
+                        key: "settings.sources.create",
+                        name: "Create",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.sources.edit",
+                        name: "Edit",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.sources.delete",
+                        name: "Delete",
+                        children: &[],
+                    },
                 ],
             },
             AclItem {
                 key: "settings.types",
                 name: "Types",
                 children: &[
-                    AclItem { key: "settings.types.create", name: "Create", children: &[] },
-                    AclItem { key: "settings.types.edit", name: "Edit", children: &[] },
-                    AclItem { key: "settings.types.delete", name: "Delete", children: &[] },
+                    AclItem {
+                        key: "settings.types.create",
+                        name: "Create",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.types.edit",
+                        name: "Edit",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.types.delete",
+                        name: "Delete",
+                        children: &[],
+                    },
                 ],
             },
             AclItem {
                 key: "settings.attributes",
                 name: "Attributes",
                 children: &[
-                    AclItem { key: "settings.attributes.create", name: "Create", children: &[] },
-                    AclItem { key: "settings.attributes.edit", name: "Edit", children: &[] },
-                    AclItem { key: "settings.attributes.delete", name: "Delete", children: &[] },
+                    AclItem {
+                        key: "settings.attributes.create",
+                        name: "Create",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.attributes.edit",
+                        name: "Edit",
+                        children: &[],
+                    },
+                    AclItem {
+                        key: "settings.attributes.delete",
+                        name: "Delete",
+                        children: &[],
+                    },
                 ],
             },
         ],

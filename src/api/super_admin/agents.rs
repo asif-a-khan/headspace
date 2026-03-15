@@ -1,7 +1,7 @@
+use axum::Json;
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 
 use crate::auth::password::hash_password;
@@ -94,10 +94,7 @@ pub async fn store(
     }
 }
 
-pub async fn show(
-    Extension(db): Extension<Database>,
-    Path(id): Path<i64>,
-) -> Response {
+pub async fn show(Extension(db): Extension<Database>, Path(id): Path<i64>) -> Response {
     let agent = sqlx::query_as::<_, SuperAdmin>(
         "SELECT sa.*, sr.permission_type, sr.permissions AS role_permissions
          FROM main.super_admins sa
@@ -132,53 +129,53 @@ pub async fn update(
     Json(payload): Json<AgentUpdatePayload>,
 ) -> Response {
     // If password provided, hash it and update all fields including password
-    if let Some(ref password) = payload.password {
-        if !password.is_empty() {
-            let password_hash = match hash_password(password) {
-                Ok(h) => h,
-                Err(e) => {
-                    tracing::error!("Failed to hash password: {e}");
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(serde_json::json!({ "error": "An internal error occurred." })),
-                    )
-                        .into_response();
-                }
-            };
+    if let Some(ref password) = payload.password
+        && !password.is_empty()
+    {
+        let password_hash = match hash_password(password) {
+            Ok(h) => h,
+            Err(e) => {
+                tracing::error!("Failed to hash password: {e}");
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({ "error": "An internal error occurred." })),
+                )
+                    .into_response();
+            }
+        };
 
-            let result = sqlx::query_as::<_, SuperAdmin>(
-                "UPDATE main.super_admins
+        let result = sqlx::query_as::<_, SuperAdmin>(
+            "UPDATE main.super_admins
                  SET first_name = $1, last_name = $2, email = $3, password_hash = $4,
                      role_id = $5, status = $6, updated_at = NOW()
                  WHERE id = $7
                  RETURNING *, NULL::text AS permission_type, NULL::jsonb AS role_permissions",
-            )
-            .bind(&payload.first_name)
-            .bind(&payload.last_name)
-            .bind(&payload.email)
-            .bind(&password_hash)
-            .bind(payload.role_id)
-            .bind(payload.status.unwrap_or(true))
-            .bind(id)
-            .fetch_optional(db.writer())
-            .await;
+        )
+        .bind(&payload.first_name)
+        .bind(&payload.last_name)
+        .bind(&payload.email)
+        .bind(&password_hash)
+        .bind(payload.role_id)
+        .bind(payload.status.unwrap_or(true))
+        .bind(id)
+        .fetch_optional(db.writer())
+        .await;
 
-            return match result {
-                Ok(Some(agent)) => {
-                    Json(serde_json::json!({ "data": agent, "message": "Agent updated successfully." }))
-                        .into_response()
-                }
-                Ok(None) => (
-                    StatusCode::NOT_FOUND,
-                    Json(serde_json::json!({ "error": "Agent not found." })),
-                )
-                    .into_response(),
-                Err(e) => {
-                    tracing::error!("Failed to update agent: {e}");
-                    update_error(e)
-                }
-            };
-        }
+        return match result {
+            Ok(Some(agent)) => {
+                Json(serde_json::json!({ "data": agent, "message": "Agent updated successfully." }))
+                    .into_response()
+            }
+            Ok(None) => (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Agent not found." })),
+            )
+                .into_response(),
+            Err(e) => {
+                tracing::error!("Failed to update agent: {e}");
+                update_error(e)
+            }
+        };
     }
 
     // Update without changing password

@@ -1,7 +1,7 @@
+use axum::Json;
 use axum::extract::Extension;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 
 use crate::auth::password::{hash_password, verify_password};
@@ -57,30 +57,31 @@ pub async fn update(
     }
 
     // If new password provided, validate confirmation and hash it
-    if let Some(ref new_password) = payload.password {
-        if !new_password.is_empty() {
-            let confirmation = payload.password_confirmation.as_deref().unwrap_or("");
-            if new_password != confirmation {
+    if let Some(ref new_password) = payload.password
+        && !new_password.is_empty()
+    {
+        let confirmation = payload.password_confirmation.as_deref().unwrap_or("");
+        if new_password != confirmation {
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "Password confirmation does not match." })),
+            )
+                .into_response();
+        }
+
+        let password_hash = match hash_password(new_password) {
+            Ok(h) => h,
+            Err(e) => {
+                tracing::error!("Failed to hash password: {e}");
                 return (
-                    StatusCode::UNPROCESSABLE_ENTITY,
-                    Json(serde_json::json!({ "error": "Password confirmation does not match." })),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({ "error": "An internal error occurred." })),
                 )
                     .into_response();
             }
+        };
 
-            let password_hash = match hash_password(new_password) {
-                Ok(h) => h,
-                Err(e) => {
-                    tracing::error!("Failed to hash password: {e}");
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(serde_json::json!({ "error": "An internal error occurred." })),
-                    )
-                        .into_response();
-                }
-            };
-
-            let result = sqlx::query(
+        let result = sqlx::query(
                 "UPDATE main.super_admins
                  SET first_name = $1, last_name = $2, email = $3, password_hash = $4, updated_at = NOW()
                  WHERE id = $5",
@@ -93,15 +94,14 @@ pub async fn update(
             .execute(db.writer())
             .await;
 
-            return match result {
-                Ok(_) => Json(serde_json::json!({ "message": "Account updated successfully." }))
-                    .into_response(),
-                Err(e) => {
-                    tracing::error!("Failed to update account: {e}");
-                    update_error(e)
-                }
-            };
-        }
+        return match result {
+            Ok(_) => Json(serde_json::json!({ "message": "Account updated successfully." }))
+                .into_response(),
+            Err(e) => {
+                tracing::error!("Failed to update account: {e}");
+                update_error(e)
+            }
+        };
     }
 
     // Update without changing password

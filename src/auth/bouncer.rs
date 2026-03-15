@@ -3,9 +3,9 @@
 //! Provides `has_permission()` for role-based access control, `bouncer()`
 //! for guarding API handlers, and `validate_payload()` for input validation.
 
+use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use validator::Validate;
 
 use crate::models::tenant_admin::TenantUser;
@@ -14,11 +14,7 @@ use crate::models::tenant_admin::TenantUser;
 ///
 /// Returns true if `permission_type` is "all".
 /// For "custom", checks the permissions JSON array for the key.
-pub fn has_permission(
-    permission_type: &str,
-    permissions: &serde_json::Value,
-    key: &str,
-) -> bool {
+pub fn has_permission(permission_type: &str, permissions: &serde_json::Value, key: &str) -> bool {
     match permission_type {
         "all" => true,
         "custom" => permissions
@@ -36,6 +32,7 @@ pub fn has_permission(
 /// ```ignore
 /// bouncer(&user, "leads.create")?;
 /// ```
+#[allow(clippy::result_large_err)]
 pub fn bouncer(user: &TenantUser, permission_key: &str) -> Result<(), Response> {
     if user.has_permission(permission_key) {
         Ok(())
@@ -59,6 +56,7 @@ pub fn bouncer(user: &TenantUser, permission_key: &str) -> Result<(), Response> 
 /// ```ignore
 /// validate_payload(&payload)?;
 /// ```
+#[allow(clippy::result_large_err)]
 pub fn validate_payload(payload: &impl Validate) -> Result<(), Response> {
     match payload.validate() {
         Ok(()) => Ok(()),

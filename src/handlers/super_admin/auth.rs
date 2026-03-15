@@ -1,8 +1,8 @@
 use axum::response::{IntoResponse, Response};
 use tower_sessions::Session;
 
-use crate::middleware::csrf::get_csrf_token;
 use crate::middleware::auth::clear_super_admin_session;
+use crate::middleware::csrf::get_csrf_token;
 use crate::views::super_admin::LoginPage;
 
 pub async fn login_page(session: Session) -> Response {

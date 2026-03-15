@@ -2,8 +2,8 @@ use axum::extract::{Extension, Path};
 use axum::response::{IntoResponse, Response};
 use tower_sessions::Session;
 
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::middleware::csrf::get_csrf_token;
 use crate::models::company::Company;
 use crate::models::organization::OrganizationRow;
@@ -77,9 +77,11 @@ pub async fn persons_create(
     };
 
     let orgs = guard
-        .fetch_all(sqlx::query_as::<_, crate::models::organization::Organization>(
-            "SELECT * FROM organizations ORDER BY name",
-        ))
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::organization::Organization>(
+                "SELECT * FROM organizations ORDER BY name",
+            ),
+        )
         .await
         .unwrap_or_default();
 
@@ -129,9 +131,11 @@ pub async fn persons_edit(
         .flatten();
 
     let orgs = guard
-        .fetch_all(sqlx::query_as::<_, crate::models::organization::Organization>(
-            "SELECT * FROM organizations ORDER BY name",
-        ))
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::organization::Organization>(
+                "SELECT * FROM organizations ORDER BY name",
+            ),
+        )
         .await
         .unwrap_or_default();
 

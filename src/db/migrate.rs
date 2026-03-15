@@ -5,8 +5,8 @@
 
 use std::path::Path;
 
-use sqlx::migrate::Migrator;
 use sqlx::PgPool;
+use sqlx::migrate::Migrator;
 
 use crate::models::company::Company;
 
@@ -25,16 +25,12 @@ pub async fn run_main_migrations(pool: &PgPool) -> anyhow::Result<()> {
         .execute(&mut *conn)
         .await?;
 
-    sqlx::migrate!("migrations/main")
-        .run(&mut *conn)
-        .await?;
+    sqlx::migrate!("migrations/main").run(&mut *conn).await?;
 
     // Reset search_path before returning the connection to the pool.
     // Without this, any code that later acquires this connection (e.g. the
     // session store) would search the wrong schema.
-    sqlx::query("RESET search_path")
-        .execute(&mut *conn)
-        .await?;
+    sqlx::query("RESET search_path").execute(&mut *conn).await?;
 
     Ok(())
 }
@@ -89,11 +85,10 @@ pub async fn run_tenant_migrations(pool: &PgPool, schema_name: &str) -> anyhow::
 ///
 /// Queries the companies table and runs `run_tenant_migrations` for each.
 pub async fn run_all_tenant_migrations(pool: &PgPool) -> anyhow::Result<()> {
-    let tenants = sqlx::query_as::<_, Company>(
-        "SELECT * FROM main.companies WHERE is_active = true",
-    )
-    .fetch_all(pool)
-    .await?;
+    let tenants =
+        sqlx::query_as::<_, Company>("SELECT * FROM main.companies WHERE is_active = true")
+            .fetch_all(pool)
+            .await?;
 
     for tenant in &tenants {
         if let Err(e) = run_tenant_migrations(pool, &tenant.schema_name).await {

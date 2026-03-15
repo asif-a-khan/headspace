@@ -29,12 +29,8 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {
             AppError::NotFound => (StatusCode::NOT_FOUND, "Not found").into_response(),
-            AppError::TenantNotFound => {
-                (StatusCode::NOT_FOUND, "Tenant not found").into_response()
-            }
-            AppError::Unauthorized => {
-                (StatusCode::UNAUTHORIZED, "Unauthorized").into_response()
-            }
+            AppError::TenantNotFound => (StatusCode::NOT_FOUND, "Tenant not found").into_response(),
+            AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized").into_response(),
             AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg).into_response(),
             AppError::Validation(_errors) => {
                 (StatusCode::UNPROCESSABLE_ENTITY, "Validation failed").into_response()

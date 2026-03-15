@@ -3,8 +3,8 @@ use axum::response::{IntoResponse, Response};
 use tower_sessions::Session;
 
 use crate::api::tenant_admin::config::load_tenant_config;
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::middleware::csrf::get_csrf_token;
 use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;

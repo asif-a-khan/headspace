@@ -1,13 +1,13 @@
+use axum::Json;
 use axum::extract::{Extension, Multipart, Path};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 use validator::Validate;
 
 use crate::auth::bouncer::{bouncer, validate_payload};
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::activity::{Activity, ActivityRow};
 use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;
@@ -104,7 +104,9 @@ pub async fn list(
     Extension(company): Extension<Company>,
     Extension(user): Extension<TenantUser>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "activities") { return resp; }
+    if let Err(resp) = bouncer(&user, "activities") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -114,7 +116,8 @@ pub async fn list(
         }
     };
 
-    let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "a.user_id");
+    let vp =
+        view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "a.user_id");
     let activities = guard
         .fetch_all(sqlx::query_as::<_, ActivityRow>(&format!(
             "SELECT a.id, a.title, a.type, a.comment, a.location,
@@ -145,8 +148,12 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<ActivityPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "activities.create") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "activities.create") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -160,10 +167,8 @@ pub async fn store(
         .schedule_from
         .as_deref()
         .and_then(|s| s.parse().ok());
-    let schedule_to: Option<chrono::DateTime<chrono::Utc>> = payload
-        .schedule_to
-        .as_deref()
-        .and_then(|s| s.parse().ok());
+    let schedule_to: Option<chrono::DateTime<chrono::Utc>> =
+        payload.schedule_to.as_deref().and_then(|s| s.parse().ok());
 
     let result = guard
         .fetch_one(
@@ -183,42 +188,39 @@ pub async fn store(
         )
         .await;
 
-    match &result {
-        Ok(activity) => {
-            // Link to leads
-            if let Some(lead_ids) = &payload.lead_ids {
-                for lid in lead_ids {
-                    let _ = guard
-                        .execute(
-                            sqlx::query("INSERT INTO lead_activities (lead_id, activity_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
-                                .bind(lid)
-                                .bind(activity.id),
-                        )
-                        .await;
-                }
+    if let Ok(activity) = &result {
+        // Link to leads
+        if let Some(lead_ids) = &payload.lead_ids {
+            for lid in lead_ids {
+                let _ = guard
+                    .execute(
+                        sqlx::query("INSERT INTO lead_activities (lead_id, activity_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+                            .bind(lid)
+                            .bind(activity.id),
+                    )
+                    .await;
             }
-            // Link to persons
-            if let Some(person_ids) = &payload.person_ids {
-                for pid in person_ids {
-                    let _ = guard
-                        .execute(
-                            sqlx::query("INSERT INTO person_activities (person_id, activity_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
-                                .bind(pid)
-                                .bind(activity.id),
-                        )
-                        .await;
-                }
-            }
-            // Save participants
-            save_participants(
-                &mut guard,
-                activity.id,
-                payload.participant_user_ids.as_deref().unwrap_or(&[]),
-                payload.participant_person_ids.as_deref().unwrap_or(&[]),
-            )
-            .await;
         }
-        Err(_) => {}
+        // Link to persons
+        if let Some(person_ids) = &payload.person_ids {
+            for pid in person_ids {
+                let _ = guard
+                    .execute(
+                        sqlx::query("INSERT INTO person_activities (person_id, activity_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+                            .bind(pid)
+                            .bind(activity.id),
+                    )
+                    .await;
+            }
+        }
+        // Save participants
+        save_participants(
+            &mut guard,
+            activity.id,
+            payload.participant_user_ids.as_deref().unwrap_or(&[]),
+            payload.participant_person_ids.as_deref().unwrap_or(&[]),
+        )
+        .await;
     }
 
     let _ = guard.release().await;
@@ -246,7 +248,9 @@ pub async fn show(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "activities.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "activities.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -259,26 +263,27 @@ pub async fn show(
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let activity = guard
         .fetch_optional(
-            sqlx::query_as::<_, Activity>(&format!("SELECT * FROM activities WHERE id = $1{vp}")).bind(id),
+            sqlx::query_as::<_, Activity>(&format!("SELECT * FROM activities WHERE id = $1{vp}"))
+                .bind(id),
         )
         .await;
 
-    match &activity {
-        Ok(Some(a)) => {
-            let participants = fetch_participants(&mut guard, a.id).await;
-            let files = guard
-                .fetch_all(
-                    sqlx::query_as::<_, ActivityFile>(
-                        "SELECT * FROM activity_files WHERE activity_id = $1 ORDER BY id",
-                    )
-                    .bind(a.id),
+    if let Ok(Some(a)) = &activity {
+        let participants = fetch_participants(&mut guard, a.id).await;
+        let files = guard
+            .fetch_all(
+                sqlx::query_as::<_, ActivityFile>(
+                    "SELECT * FROM activity_files WHERE activity_id = $1 ORDER BY id",
                 )
-                .await
-                .unwrap_or_default();
-            let _ = guard.release().await;
-            return Json(serde_json::json!({ "data": a, "participants": participants, "files": files })).into_response();
-        }
-        _ => {}
+                .bind(a.id),
+            )
+            .await
+            .unwrap_or_default();
+        let _ = guard.release().await;
+        return Json(
+            serde_json::json!({ "data": a, "participants": participants, "files": files }),
+        )
+        .into_response();
     }
 
     let _ = guard.release().await;
@@ -304,8 +309,12 @@ pub async fn update(
     Path(id): Path<i64>,
     Json(payload): Json<ActivityPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "activities.edit") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "activities.edit") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -319,10 +328,8 @@ pub async fn update(
         .schedule_from
         .as_deref()
         .and_then(|s| s.parse().ok());
-    let schedule_to: Option<chrono::DateTime<chrono::Utc>> = payload
-        .schedule_to
-        .as_deref()
-        .and_then(|s| s.parse().ok());
+    let schedule_to: Option<chrono::DateTime<chrono::Utc>> =
+        payload.schedule_to.as_deref().and_then(|s| s.parse().ok());
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let result = guard
@@ -350,8 +357,7 @@ pub async fn update(
         if let Some(ref lead_ids) = payload.lead_ids {
             let _ = guard
                 .execute(
-                    sqlx::query("DELETE FROM lead_activities WHERE activity_id = $1")
-                        .bind(a.id),
+                    sqlx::query("DELETE FROM lead_activities WHERE activity_id = $1").bind(a.id),
                 )
                 .await;
             for lid in lead_ids {
@@ -403,7 +409,9 @@ pub async fn destroy(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "activities.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "activities.delete") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -453,9 +461,14 @@ pub async fn mass_delete(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<MassDeletePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "activities.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "activities.delete") {
+        return resp;
+    }
     if payload.ids.is_empty() {
-        return Json(serde_json::json!({ "message": "No activities selected.", "deleted_count": 0 })).into_response();
+        return Json(
+            serde_json::json!({ "message": "No activities selected.", "deleted_count": 0 }),
+        )
+        .into_response();
     }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
@@ -468,7 +481,12 @@ pub async fn mass_delete(
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let result = guard
-        .execute(sqlx::query(&format!("DELETE FROM activities WHERE id = ANY($1::bigint[]){vp}")).bind(&payload.ids))
+        .execute(
+            sqlx::query(&format!(
+                "DELETE FROM activities WHERE id = ANY($1::bigint[]){vp}"
+            ))
+            .bind(&payload.ids),
+        )
         .await;
 
     let _ = guard.release().await;
@@ -480,7 +498,11 @@ pub async fn mass_delete(
         }
         Err(e) => {
             tracing::error!("Failed to mass delete activities: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed to delete activities." }))).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Failed to delete activities." })),
+            )
+                .into_response()
         }
     }
 }
@@ -505,7 +527,9 @@ pub async fn list_files(
     Extension(user): Extension<TenantUser>,
     Path(activity_id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "activities") { return resp; }
+    if let Err(resp) = bouncer(&user, "activities") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -542,7 +566,9 @@ pub async fn upload_file(
     Path(activity_id): Path<i64>,
     mut multipart: Multipart,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "activities.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "activities.edit") {
+        return resp;
+    }
 
     let upload_dir = format!("uploads/{}", company.schema_name);
     if let Err(e) = tokio::fs::create_dir_all(&upload_dir).await {
@@ -617,7 +643,9 @@ pub async fn upload_file(
 
     (
         StatusCode::CREATED,
-        Json(serde_json::json!({ "data": result_files, "message": "Files uploaded successfully." })),
+        Json(
+            serde_json::json!({ "data": result_files, "message": "Files uploaded successfully." }),
+        ),
     )
         .into_response()
 }
@@ -628,7 +656,9 @@ pub async fn download_file(
     Extension(user): Extension<TenantUser>,
     Path((_activity_id, file_id)): Path<(i64, i64)>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "activities") { return resp; }
+    if let Err(resp) = bouncer(&user, "activities") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -670,7 +700,10 @@ pub async fn download_file(
         }
     };
 
-    let content_type = file.file_type.as_deref().unwrap_or("application/octet-stream");
+    let content_type = file
+        .file_type
+        .as_deref()
+        .unwrap_or("application/octet-stream");
     let disposition = format!("attachment; filename=\"{}\"", file.file_name);
 
     (
@@ -689,7 +722,9 @@ pub async fn delete_file(
     Extension(user): Extension<TenantUser>,
     Path((_activity_id, file_id)): Path<(i64, i64)>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "activities.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "activities.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,

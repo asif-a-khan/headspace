@@ -1,13 +1,13 @@
+use axum::Json;
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 use validator::Validate;
 
 use crate::auth::bouncer::{bouncer, validate_payload};
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::tenant_admin::{TenantRole, TenantUser};
 
@@ -26,7 +26,9 @@ pub async fn list(
     Extension(company): Extension<Company>,
     Extension(user): Extension<TenantUser>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.roles") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.roles") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -59,8 +61,12 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<RolePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.roles.create") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.roles.create") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -71,15 +77,17 @@ pub async fn store(
     };
 
     let result = guard
-        .fetch_one(sqlx::query_as::<_, TenantRole>(
-            "INSERT INTO roles (name, description, permission_type, permissions)
+        .fetch_one(
+            sqlx::query_as::<_, TenantRole>(
+                "INSERT INTO roles (name, description, permission_type, permissions)
              VALUES ($1, $2, $3, $4)
              RETURNING *",
+            )
+            .bind(&payload.name)
+            .bind(&payload.description)
+            .bind(&payload.permission_type)
+            .bind(&payload.permissions),
         )
-        .bind(&payload.name)
-        .bind(&payload.description)
-        .bind(&payload.permission_type)
-        .bind(&payload.permissions))
         .await;
 
     let _ = guard.release().await;
@@ -107,7 +115,9 @@ pub async fn show(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.roles.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.roles.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -118,10 +128,9 @@ pub async fn show(
     };
 
     let role = guard
-        .fetch_optional(sqlx::query_as::<_, TenantRole>(
-            "SELECT * FROM roles WHERE id = $1",
+        .fetch_optional(
+            sqlx::query_as::<_, TenantRole>("SELECT * FROM roles WHERE id = $1").bind(id),
         )
-        .bind(id))
         .await;
 
     let _ = guard.release().await;
@@ -147,8 +156,12 @@ pub async fn update(
     Path(id): Path<i64>,
     Json(payload): Json<RolePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.roles.edit") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.roles.edit") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -201,7 +214,9 @@ pub async fn destroy(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.roles.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.roles.delete") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -226,34 +241,33 @@ pub async fn destroy(
         .fetch_one(sqlx::query_as::<_, (i64,)>("SELECT COUNT(*) FROM roles"))
         .await;
 
-    if let Ok((c,)) = role_count {
-        if c <= 1 {
-            let _ = guard.release().await;
-            return (
-                StatusCode::UNPROCESSABLE_ENTITY,
-                Json(serde_json::json!({ "error": "Cannot delete the last role." })),
-            )
-                .into_response();
-        }
+    if let Ok((c,)) = role_count
+        && c <= 1
+    {
+        let _ = guard.release().await;
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::json!({ "error": "Cannot delete the last role." })),
+        )
+            .into_response();
     }
 
     // Check if any users are assigned to this role
     let user_count = guard
-        .fetch_one(sqlx::query_as::<_, (i64,)>(
-            "SELECT COUNT(*) FROM users WHERE role_id = $1",
+        .fetch_one(
+            sqlx::query_as::<_, (i64,)>("SELECT COUNT(*) FROM users WHERE role_id = $1").bind(id),
         )
-        .bind(id))
         .await;
 
-    if let Ok((c,)) = user_count {
-        if c > 0 {
-            let _ = guard.release().await;
-            return (
-                StatusCode::UNPROCESSABLE_ENTITY,
-                Json(serde_json::json!({ "error": "Cannot delete a role that has users assigned." })),
-            )
-                .into_response();
-        }
+    if let Ok((c,)) = user_count
+        && c > 0
+    {
+        let _ = guard.release().await;
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::json!({ "error": "Cannot delete a role that has users assigned." })),
+        )
+            .into_response();
     }
 
     let result = guard

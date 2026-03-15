@@ -6,10 +6,7 @@ use crate::middleware::csrf::get_csrf_token;
 use crate::models::super_admin::SuperAdmin;
 use crate::views::super_admin::SettingsIndex;
 
-pub async fn index(
-    session: Session,
-    Extension(admin): Extension<SuperAdmin>,
-) -> Response {
+pub async fn index(session: Session, Extension(admin): Extension<SuperAdmin>) -> Response {
     let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
     let initial_data = serde_json::json!({
         "admin_name": admin.full_name(),

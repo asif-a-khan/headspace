@@ -1,13 +1,13 @@
+use axum::Json;
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 use validator::Validate;
 
 use crate::auth::bouncer::{bouncer, validate_payload};
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;
 use crate::models::web_form::{WebForm, WebFormAttributeRow};
@@ -43,7 +43,9 @@ pub async fn list(
     Extension(company): Extension<Company>,
     Extension(user): Extension<TenantUser>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.web_forms") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.web_forms") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -76,8 +78,12 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<WebFormPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.web_forms.create") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.web_forms.create") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -90,8 +96,14 @@ pub async fn store(
     // Generate a unique form_id
     let form_id = generate_form_id();
     let submit_button_label = payload.submit_button_label.as_deref().unwrap_or("Submit");
-    let submit_success_action = payload.submit_success_action.as_deref().unwrap_or("message");
-    let submit_success_content = payload.submit_success_content.as_deref().unwrap_or("Thank you for your submission.");
+    let submit_success_action = payload
+        .submit_success_action
+        .as_deref()
+        .unwrap_or("message");
+    let submit_success_content = payload
+        .submit_success_content
+        .as_deref()
+        .unwrap_or("Thank you for your submission.");
     let create_lead = payload.create_lead.unwrap_or(true);
 
     let result = guard
@@ -118,7 +130,11 @@ pub async fn store(
         Err(e) => {
             tracing::error!("Failed to create web form: {e}");
             let _ = guard.release().await;
-            return (StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({ "error": "Failed to create web form." }))).into_response();
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "Failed to create web form." })),
+            )
+                .into_response();
         }
     };
 
@@ -142,7 +158,11 @@ pub async fn store(
 
     let _ = guard.release().await;
 
-    (StatusCode::CREATED, Json(serde_json::json!({ "data": form, "message": "Web form created successfully." }))).into_response()
+    (
+        StatusCode::CREATED,
+        Json(serde_json::json!({ "data": form, "message": "Web form created successfully." })),
+    )
+        .into_response()
 }
 
 pub async fn show(
@@ -151,7 +171,9 @@ pub async fn show(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.web_forms") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.web_forms") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -162,19 +184,24 @@ pub async fn show(
     };
 
     let form = guard
-        .fetch_optional(sqlx::query_as::<_, WebForm>("SELECT * FROM web_forms WHERE id = $1").bind(id))
+        .fetch_optional(
+            sqlx::query_as::<_, WebForm>("SELECT * FROM web_forms WHERE id = $1").bind(id),
+        )
         .await;
 
     let attrs = guard
-        .fetch_all(sqlx::query_as::<_, WebFormAttributeRow>(
-            "SELECT wfa.id, wfa.name, wfa.placeholder, wfa.is_required, wfa.sort_order,
+        .fetch_all(
+            sqlx::query_as::<_, WebFormAttributeRow>(
+                "SELECT wfa.id, wfa.name, wfa.placeholder, wfa.is_required, wfa.sort_order,
                     wfa.attribute_id, wfa.web_form_id,
                     a.name AS attribute_name, a.code AS attribute_code, a.type AS attribute_type
              FROM web_form_attributes wfa
              JOIN attributes a ON a.id = wfa.attribute_id
              WHERE wfa.web_form_id = $1
              ORDER BY wfa.sort_order, wfa.id",
-        ).bind(id))
+            )
+            .bind(id),
+        )
         .await
         .unwrap_or_default();
 
@@ -182,7 +209,11 @@ pub async fn show(
 
     match form {
         Ok(Some(f)) => Json(serde_json::json!({ "data": f, "attributes": attrs })).into_response(),
-        Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Web form not found." }))).into_response(),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Web form not found." })),
+        )
+            .into_response(),
         Err(e) => {
             tracing::error!("Failed to fetch web form: {e}");
             internal_error()
@@ -197,8 +228,12 @@ pub async fn update(
     Path(id): Path<i64>,
     Json(payload): Json<WebFormPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.web_forms.edit") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.web_forms.edit") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -209,8 +244,14 @@ pub async fn update(
     };
 
     let submit_button_label = payload.submit_button_label.as_deref().unwrap_or("Submit");
-    let submit_success_action = payload.submit_success_action.as_deref().unwrap_or("message");
-    let submit_success_content = payload.submit_success_content.as_deref().unwrap_or("Thank you for your submission.");
+    let submit_success_action = payload
+        .submit_success_action
+        .as_deref()
+        .unwrap_or("message");
+    let submit_success_content = payload
+        .submit_success_content
+        .as_deref()
+        .unwrap_or("Thank you for your submission.");
     let create_lead = payload.create_lead.unwrap_or(true);
 
     let result = guard
@@ -238,18 +279,28 @@ pub async fn update(
         Ok(Some(f)) => f,
         Ok(None) => {
             let _ = guard.release().await;
-            return (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Web form not found." }))).into_response();
+            return (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Web form not found." })),
+            )
+                .into_response();
         }
         Err(e) => {
             tracing::error!("Failed to update web form: {e}");
             let _ = guard.release().await;
-            return (StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({ "error": "Failed to update web form." }))).into_response();
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "Failed to update web form." })),
+            )
+                .into_response();
         }
     };
 
     // Sync attributes: delete old, insert new
     if let Some(ref attrs) = payload.attributes {
-        let _ = guard.execute(sqlx::query("DELETE FROM web_form_attributes WHERE web_form_id = $1").bind(id)).await;
+        let _ = guard
+            .execute(sqlx::query("DELETE FROM web_form_attributes WHERE web_form_id = $1").bind(id))
+            .await;
         for attr in attrs {
             let _ = guard.execute(
                 sqlx::query(
@@ -268,7 +319,8 @@ pub async fn update(
 
     let _ = guard.release().await;
 
-    Json(serde_json::json!({ "data": form, "message": "Web form updated successfully." })).into_response()
+    Json(serde_json::json!({ "data": form, "message": "Web form updated successfully." }))
+        .into_response()
 }
 
 pub async fn destroy(
@@ -277,7 +329,9 @@ pub async fn destroy(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.web_forms.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.web_forms.delete") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -287,26 +341,44 @@ pub async fn destroy(
         }
     };
 
-    let result = guard.execute(sqlx::query("DELETE FROM web_forms WHERE id = $1").bind(id)).await;
+    let result = guard
+        .execute(sqlx::query("DELETE FROM web_forms WHERE id = $1").bind(id))
+        .await;
     let _ = guard.release().await;
 
     match result {
-        Ok(r) if r.rows_affected() > 0 => Json(serde_json::json!({ "message": "Web form deleted successfully." })).into_response(),
-        Ok(_) => (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Web form not found." }))).into_response(),
+        Ok(r) if r.rows_affected() > 0 => {
+            Json(serde_json::json!({ "message": "Web form deleted successfully." })).into_response()
+        }
+        Ok(_) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Web form not found." })),
+        )
+            .into_response(),
         Err(e) => {
             tracing::error!("Failed to delete web form: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed to delete web form." }))).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Failed to delete web form." })),
+            )
+                .into_response()
         }
     }
 }
 
 fn internal_error() -> Response {
-    (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "An internal error occurred." }))).into_response()
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(serde_json::json!({ "error": "An internal error occurred." })),
+    )
+        .into_response()
 }
 
 fn generate_form_id() -> String {
     use rand::Rng;
     let mut rng = rand::rng();
     let chars: Vec<char> = "abcdefghijklmnopqrstuvwxyz0123456789".chars().collect();
-    (0..12).map(|_| chars[rng.random_range(0..chars.len())]).collect()
+    (0..12)
+        .map(|_| chars[rng.random_range(0..chars.len())])
+        .collect()
 }

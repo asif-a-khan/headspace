@@ -1,15 +1,15 @@
+use axum::Json;
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 
 use validator::Validate;
 
 use crate::auth::bouncer::{bouncer, validate_payload};
 use crate::auth::password::hash_password;
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;
 
@@ -49,7 +49,9 @@ pub async fn list(
     Extension(company): Extension<Company>,
     Extension(user): Extension<TenantUser>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.users") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.users") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -85,8 +87,12 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<UserCreatePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.users.create") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.users.create") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let password_hash = match hash_password(&payload.password) {
         Ok(h) => h,
@@ -159,7 +165,9 @@ pub async fn show(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.users.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.users.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -170,21 +178,23 @@ pub async fn show(
     };
 
     let target = guard
-        .fetch_optional(sqlx::query_as::<_, TenantUser>(
-            "SELECT u.*, r.permission_type, r.permissions AS role_permissions
+        .fetch_optional(
+            sqlx::query_as::<_, TenantUser>(
+                "SELECT u.*, r.permission_type, r.permissions AS role_permissions
              FROM users u
              JOIN roles r ON r.id = u.role_id
              WHERE u.id = $1",
+            )
+            .bind(id),
         )
-        .bind(id))
         .await;
 
     // Also fetch group IDs for this user
     let group_ids = guard
-        .fetch_all(sqlx::query_as::<_, (i64,)>(
-            "SELECT group_id FROM user_groups WHERE user_id = $1",
+        .fetch_all(
+            sqlx::query_as::<_, (i64,)>("SELECT group_id FROM user_groups WHERE user_id = $1")
+                .bind(id),
         )
-        .bind(id))
         .await;
 
     let _ = guard.release().await;
@@ -217,8 +227,12 @@ pub async fn update(
     Path(id): Path<i64>,
     Json(payload): Json<UserUpdatePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.users.edit") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.users.edit") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let view_permission = payload.view_permission.as_deref().unwrap_or("global");
 
@@ -243,21 +257,23 @@ pub async fn update(
             };
 
             guard
-                .fetch_optional(sqlx::query_as::<_, TenantUser>(
-                    "UPDATE users
+                .fetch_optional(
+                    sqlx::query_as::<_, TenantUser>(
+                        "UPDATE users
                      SET first_name = $1, last_name = $2, email = $3, password_hash = $4,
                          role_id = $5, view_permission = $6, status = $7, updated_at = NOW()
                      WHERE id = $8
                      RETURNING *, NULL::text AS permission_type, NULL::jsonb AS role_permissions",
+                    )
+                    .bind(&payload.first_name)
+                    .bind(&payload.last_name)
+                    .bind(&payload.email)
+                    .bind(&password_hash)
+                    .bind(payload.role_id)
+                    .bind(view_permission)
+                    .bind(payload.status.unwrap_or(true))
+                    .bind(id),
                 )
-                .bind(&payload.first_name)
-                .bind(&payload.last_name)
-                .bind(&payload.email)
-                .bind(&password_hash)
-                .bind(payload.role_id)
-                .bind(view_permission)
-                .bind(payload.status.unwrap_or(true))
-                .bind(id))
                 .await
         } else {
             update_without_password(&mut guard, &payload, view_permission, id).await
@@ -307,20 +323,22 @@ async fn update_without_password(
     id: i64,
 ) -> Result<Option<TenantUser>, sqlx::Error> {
     guard
-        .fetch_optional(sqlx::query_as::<_, TenantUser>(
-            "UPDATE users
+        .fetch_optional(
+            sqlx::query_as::<_, TenantUser>(
+                "UPDATE users
              SET first_name = $1, last_name = $2, email = $3,
                  role_id = $4, view_permission = $5, status = $6, updated_at = NOW()
              WHERE id = $7
              RETURNING *, NULL::text AS permission_type, NULL::jsonb AS role_permissions",
+            )
+            .bind(&payload.first_name)
+            .bind(&payload.last_name)
+            .bind(&payload.email)
+            .bind(payload.role_id)
+            .bind(view_permission)
+            .bind(payload.status.unwrap_or(true))
+            .bind(id),
         )
-        .bind(&payload.first_name)
-        .bind(&payload.last_name)
-        .bind(&payload.email)
-        .bind(payload.role_id)
-        .bind(view_permission)
-        .bind(payload.status.unwrap_or(true))
-        .bind(id))
         .await
 }
 
@@ -330,7 +348,9 @@ pub async fn destroy(
     Extension(current_user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&current_user, "settings.users.delete") { return resp; }
+    if let Err(resp) = bouncer(&current_user, "settings.users.delete") {
+        return resp;
+    }
 
     if current_user.id == id {
         return (
@@ -349,20 +369,18 @@ pub async fn destroy(
     };
 
     let count = guard
-        .fetch_one(sqlx::query_as::<_, (i64,)>(
-            "SELECT COUNT(*) FROM users",
-        ))
+        .fetch_one(sqlx::query_as::<_, (i64,)>("SELECT COUNT(*) FROM users"))
         .await;
 
-    if let Ok((c,)) = count {
-        if c <= 1 {
-            let _ = guard.release().await;
-            return (
-                StatusCode::UNPROCESSABLE_ENTITY,
-                Json(serde_json::json!({ "error": "Cannot delete the last user." })),
-            )
-                .into_response();
-        }
+    if let Ok((c,)) = count
+        && c <= 1
+    {
+        let _ = guard.release().await;
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::json!({ "error": "Cannot delete the last user." })),
+        )
+            .into_response();
     }
 
     let result = guard

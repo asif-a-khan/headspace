@@ -2,7 +2,7 @@ use axum::extract::{Extension, Path};
 use axum::response::{IntoResponse, Response};
 use tower_sessions::Session;
 
-use crate::auth::acl::{flatten_acl, SUPER_ADMIN_ACL};
+use crate::auth::acl::{SUPER_ADMIN_ACL, flatten_acl};
 use crate::db::Database;
 use crate::middleware::csrf::get_csrf_token;
 use crate::models::super_admin::SuperAdmin;
@@ -15,12 +15,10 @@ pub async fn index(
     Extension(admin): Extension<SuperAdmin>,
 ) -> Response {
     let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
-    let roles = sqlx::query_as::<_, SuperRole>(
-        "SELECT * FROM main.super_roles ORDER BY id DESC",
-    )
-    .fetch_all(db.reader())
-    .await
-    .unwrap_or_default();
+    let roles = sqlx::query_as::<_, SuperRole>("SELECT * FROM main.super_roles ORDER BY id DESC")
+        .fetch_all(db.reader())
+        .await
+        .unwrap_or_default();
 
     let initial_data = serde_json::json!({
         "roles": roles,
@@ -31,10 +29,7 @@ pub async fn index(
     RoleIndex::new(csrf_token, initial_data.to_string()).into_response()
 }
 
-pub async fn create(
-    session: Session,
-    Extension(admin): Extension<SuperAdmin>,
-) -> Response {
+pub async fn create(session: Session, Extension(admin): Extension<SuperAdmin>) -> Response {
     let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
     let acl = flatten_acl(SUPER_ADMIN_ACL);
     let initial_data = serde_json::json!({
@@ -51,14 +46,12 @@ pub async fn edit(
     Path(id): Path<i64>,
 ) -> Response {
     let csrf_token = get_csrf_token(&session).await.unwrap_or_default();
-    let role = sqlx::query_as::<_, SuperRole>(
-        "SELECT * FROM main.super_roles WHERE id = $1",
-    )
-    .bind(id)
-    .fetch_optional(db.reader())
-    .await
-    .ok()
-    .flatten();
+    let role = sqlx::query_as::<_, SuperRole>("SELECT * FROM main.super_roles WHERE id = $1")
+        .bind(id)
+        .fetch_optional(db.reader())
+        .await
+        .ok()
+        .flatten();
 
     let acl = flatten_acl(SUPER_ADMIN_ACL);
     let initial_data = serde_json::json!({

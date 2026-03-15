@@ -2,8 +2,8 @@ use axum::extract::{Extension, Path};
 use axum::response::{IntoResponse, Response};
 use tower_sessions::Session;
 
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::middleware::csrf::get_csrf_token;
 use crate::models::company::Company;
 use crate::models::lead::LeadRow;
@@ -83,7 +83,11 @@ pub async fn index(
 
     let _ = guard.release().await;
 
-    let last_page = if per_page > 0 { (total + per_page - 1) / per_page } else { 1 };
+    let last_page = if per_page > 0 {
+        (total + per_page - 1) / per_page
+    } else {
+        1
+    };
     let initial_data = serde_json::json!({
         "leads": leads,
         "meta": { "total": total, "page": 1, "per_page": per_page, "last_page": last_page },
@@ -157,9 +161,11 @@ pub async fn create(
         .unwrap_or_default();
 
     let organizations = guard
-        .fetch_all(sqlx::query_as::<_, crate::models::organization::Organization>(
-            "SELECT * FROM organizations ORDER BY name",
-        ))
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::organization::Organization>(
+                "SELECT * FROM organizations ORDER BY name",
+            ),
+        )
         .await
         .unwrap_or_default();
 
@@ -205,10 +211,8 @@ pub async fn edit(
 
     let lead = guard
         .fetch_optional(
-            sqlx::query_as::<_, crate::models::lead::Lead>(
-                "SELECT * FROM leads WHERE id = $1",
-            )
-            .bind(id),
+            sqlx::query_as::<_, crate::models::lead::Lead>("SELECT * FROM leads WHERE id = $1")
+                .bind(id),
         )
         .await
         .ok()
@@ -260,9 +264,11 @@ pub async fn edit(
         .unwrap_or_default();
 
     let organizations = guard
-        .fetch_all(sqlx::query_as::<_, crate::models::organization::Organization>(
-            "SELECT * FROM organizations ORDER BY name",
-        ))
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::organization::Organization>(
+                "SELECT * FROM organizations ORDER BY name",
+            ),
+        )
         .await
         .unwrap_or_default();
 
@@ -276,14 +282,17 @@ pub async fn edit(
     // Existing lead products for the Products tab
     let lead_products = if lead.is_some() {
         guard
-            .fetch_all(sqlx::query_as::<_, crate::models::lead::LeadProductRow>(
-                "SELECT lp.id, lp.lead_id, lp.product_id, lp.quantity, lp.price, lp.amount,
+            .fetch_all(
+                sqlx::query_as::<_, crate::models::lead::LeadProductRow>(
+                    "SELECT lp.id, lp.lead_id, lp.product_id, lp.quantity, lp.price, lp.amount,
                         p.name AS product_name, p.sku AS product_sku
                  FROM lead_products lp
                  JOIN products p ON p.id = lp.product_id
                  WHERE lp.lead_id = $1
                  ORDER BY lp.id",
-            ).bind(id))
+                )
+                .bind(id),
+            )
             .await
             .unwrap_or_default()
     } else {
@@ -327,10 +336,8 @@ pub async fn show(
 
     let lead = guard
         .fetch_optional(
-            sqlx::query_as::<_, crate::models::lead::Lead>(
-                "SELECT * FROM leads WHERE id = $1",
-            )
-            .bind(id),
+            sqlx::query_as::<_, crate::models::lead::Lead>("SELECT * FROM leads WHERE id = $1")
+                .bind(id),
         )
         .await
         .ok()
@@ -360,9 +367,12 @@ pub async fn show(
 
     let user_name: Option<String> = if let Some(uid) = lead.user_id {
         guard
-            .fetch_optional(sqlx::query_as::<_, (String,)>(
-                "SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = $1",
-            ).bind(uid))
+            .fetch_optional(
+                sqlx::query_as::<_, (String,)>(
+                    "SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = $1",
+                )
+                .bind(uid),
+            )
             .await
             .ok()
             .flatten()
@@ -373,9 +383,10 @@ pub async fn show(
 
     let source_name: Option<String> = if let Some(sid) = lead.lead_source_id {
         guard
-            .fetch_optional(sqlx::query_as::<_, (String,)>(
-                "SELECT name FROM lead_sources WHERE id = $1",
-            ).bind(sid))
+            .fetch_optional(
+                sqlx::query_as::<_, (String,)>("SELECT name FROM lead_sources WHERE id = $1")
+                    .bind(sid),
+            )
             .await
             .ok()
             .flatten()
@@ -386,9 +397,10 @@ pub async fn show(
 
     let type_name: Option<String> = if let Some(tid) = lead.lead_type_id {
         guard
-            .fetch_optional(sqlx::query_as::<_, (String,)>(
-                "SELECT name FROM lead_types WHERE id = $1",
-            ).bind(tid))
+            .fetch_optional(
+                sqlx::query_as::<_, (String,)>("SELECT name FROM lead_types WHERE id = $1")
+                    .bind(tid),
+            )
             .await
             .ok()
             .flatten()
@@ -399,9 +411,10 @@ pub async fn show(
 
     let pipeline_name: Option<String> = if let Some(pid) = lead.lead_pipeline_id {
         guard
-            .fetch_optional(sqlx::query_as::<_, (String,)>(
-                "SELECT name FROM lead_pipelines WHERE id = $1",
-            ).bind(pid))
+            .fetch_optional(
+                sqlx::query_as::<_, (String,)>("SELECT name FROM lead_pipelines WHERE id = $1")
+                    .bind(pid),
+            )
             .await
             .ok()
             .flatten()
@@ -413,13 +426,16 @@ pub async fn show(
     // Pipeline stages for the stage bar
     let stages = if let Some(pid) = lead.lead_pipeline_id {
         guard
-            .fetch_all(sqlx::query_as::<_, PipelineStageDetail>(
-                "SELECT lps.*, s.code AS stage_code, s.name AS stage_name
+            .fetch_all(
+                sqlx::query_as::<_, PipelineStageDetail>(
+                    "SELECT lps.*, s.code AS stage_code, s.name AS stage_name
                  FROM lead_pipeline_stages lps
                  JOIN lead_stages s ON s.id = lps.lead_stage_id
                  WHERE lps.lead_pipeline_id = $1
                  ORDER BY lps.sort_order",
-            ).bind(pid))
+                )
+                .bind(pid),
+            )
             .await
             .unwrap_or_default()
     } else {
@@ -428,63 +444,76 @@ pub async fn show(
 
     // Related activities
     let activities = guard
-        .fetch_all(sqlx::query_as::<_, crate::models::activity::Activity>(
-            "SELECT a.* FROM activities a
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::activity::Activity>(
+                "SELECT a.* FROM activities a
              JOIN lead_activities la ON la.activity_id = a.id
              WHERE la.lead_id = $1
              ORDER BY a.created_at DESC",
-        ).bind(id))
+            )
+            .bind(id),
+        )
         .await
         .unwrap_or_default();
 
     // Tags
     let tags = guard
-        .fetch_all(sqlx::query_as::<_, crate::models::tag::Tag>(
-            "SELECT t.* FROM tags t
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::tag::Tag>(
+                "SELECT t.* FROM tags t
              JOIN lead_tags lt ON lt.tag_id = t.id
              WHERE lt.lead_id = $1
              ORDER BY t.name",
-        ).bind(id))
+            )
+            .bind(id),
+        )
         .await
         .unwrap_or_default();
 
     // Lead products
     let products = guard
-        .fetch_all(sqlx::query_as::<_, crate::models::lead::LeadProductRow>(
-            "SELECT lp.id, lp.lead_id, lp.product_id, lp.quantity, lp.price, lp.amount,
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::lead::LeadProductRow>(
+                "SELECT lp.id, lp.lead_id, lp.product_id, lp.quantity, lp.price, lp.amount,
                     p.name AS product_name, p.sku AS product_sku
              FROM lead_products lp
              JOIN products p ON p.id = lp.product_id
              WHERE lp.lead_id = $1
              ORDER BY lp.id",
-        ).bind(id))
+            )
+            .bind(id),
+        )
         .await
         .unwrap_or_default();
 
     // Lead quotes
     let quotes = guard
-        .fetch_all(sqlx::query_as::<_, crate::models::quote::Quote>(
-            "SELECT q.* FROM quotes q
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::quote::Quote>(
+                "SELECT q.* FROM quotes q
              JOIN lead_quotes lq ON lq.quote_id = q.id
              WHERE lq.lead_id = $1
              ORDER BY q.id DESC",
-        ).bind(id))
+            )
+            .bind(id),
+        )
         .await
         .unwrap_or_default();
 
     // Organization (via person)
-    let org: Option<Organization> = if let Some(oid) = person.as_ref().and_then(|p| p.organization_id) {
-        guard
-            .fetch_optional(
-                sqlx::query_as::<_, Organization>("SELECT * FROM organizations WHERE id = $1")
-                    .bind(oid),
-            )
-            .await
-            .ok()
-            .flatten()
-    } else {
-        None
-    };
+    let org: Option<Organization> =
+        if let Some(oid) = person.as_ref().and_then(|p| p.organization_id) {
+            guard
+                .fetch_optional(
+                    sqlx::query_as::<_, Organization>("SELECT * FROM organizations WHERE id = $1")
+                        .bind(oid),
+                )
+                .await
+                .ok()
+                .flatten()
+        } else {
+            None
+        };
 
     let _ = guard.release().await;
 

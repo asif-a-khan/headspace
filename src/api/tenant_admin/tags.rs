@@ -1,12 +1,12 @@
+use axum::Json;
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 
 use crate::auth::bouncer::bouncer;
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::tag::Tag;
 use crate::models::tenant_admin::TenantUser;
@@ -29,7 +29,9 @@ pub async fn list(
     Extension(company): Extension<Company>,
     Extension(user): Extension<TenantUser>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "tags") { return resp; }
+    if let Err(resp) = bouncer(&user, "tags") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -60,7 +62,9 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<TagPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "tags.create") { return resp; }
+    if let Err(resp) = bouncer(&user, "tags.create") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -108,7 +112,9 @@ pub async fn show(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "tags.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "tags.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -145,7 +151,9 @@ pub async fn update(
     Path(id): Path<i64>,
     Json(payload): Json<TagPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "tags.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "tags.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -169,7 +177,10 @@ pub async fn update(
     let _ = guard.release().await;
 
     match result {
-        Ok(Some(t)) => Json(serde_json::json!({ "data": t, "message": "Tag updated successfully." })).into_response(),
+        Ok(Some(t)) => {
+            Json(serde_json::json!({ "data": t, "message": "Tag updated successfully." }))
+                .into_response()
+        }
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "Tag not found." })),
@@ -192,7 +203,9 @@ pub async fn destroy(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "tags.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "tags.delete") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -234,7 +247,9 @@ pub async fn attach(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<AttachPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "tags.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "tags.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -245,10 +260,16 @@ pub async fn attach(
     };
 
     let sql = match payload.entity_type.as_str() {
-        "persons" => "INSERT INTO person_tags (person_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-        "organizations" => "INSERT INTO organization_tags (organization_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        "persons" => {
+            "INSERT INTO person_tags (person_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
+        }
+        "organizations" => {
+            "INSERT INTO organization_tags (organization_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
+        }
         "leads" => "INSERT INTO lead_tags (lead_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-        "products" => "INSERT INTO product_tags (product_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        "products" => {
+            "INSERT INTO product_tags (product_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
+        }
         _ => {
             let _ = guard.release().await;
             return (
@@ -288,7 +309,9 @@ pub async fn detach(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<AttachPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "tags.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "tags.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -300,7 +323,9 @@ pub async fn detach(
 
     let sql = match payload.entity_type.as_str() {
         "persons" => "DELETE FROM person_tags WHERE person_id = $1 AND tag_id = $2",
-        "organizations" => "DELETE FROM organization_tags WHERE organization_id = $1 AND tag_id = $2",
+        "organizations" => {
+            "DELETE FROM organization_tags WHERE organization_id = $1 AND tag_id = $2"
+        }
         "leads" => "DELETE FROM lead_tags WHERE lead_id = $1 AND tag_id = $2",
         "products" => "DELETE FROM product_tags WHERE product_id = $1 AND tag_id = $2",
         _ => {

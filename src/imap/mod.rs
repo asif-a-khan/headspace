@@ -104,10 +104,7 @@ fn build_tls_connector() -> TlsConnector {
 /// Connect to an IMAP server with SSL (direct TLS) and login.
 pub async fn connect_ssl(
     config: &ImapConfig,
-) -> Result<
-    async_imap::Session<tokio_rustls::client::TlsStream<TcpStream>>,
-    ImapSyncError,
-> {
+) -> Result<async_imap::Session<tokio_rustls::client::TlsStream<TcpStream>>, ImapSyncError> {
     let addr = format!("{}:{}", config.host, config.port);
     let tcp = TcpStream::connect(&addr)
         .await
@@ -133,10 +130,7 @@ pub async fn connect_ssl(
 /// Connect to an IMAP server with STARTTLS and login.
 pub async fn connect_starttls(
     config: &ImapConfig,
-) -> Result<
-    async_imap::Session<tokio_rustls::client::TlsStream<TcpStream>>,
-    ImapSyncError,
-> {
+) -> Result<async_imap::Session<tokio_rustls::client::TlsStream<TcpStream>>, ImapSyncError> {
     let addr = format!("{}:{}", config.host, config.port);
     let tcp = TcpStream::connect(&addr)
         .await

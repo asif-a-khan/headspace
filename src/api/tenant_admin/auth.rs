@@ -1,7 +1,7 @@
+use axum::Json;
 use axum::extract::Extension;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 use tower_sessions::Session;
 
@@ -36,16 +36,17 @@ pub async fn login(
         }
     };
 
-    let admin = guard.fetch_optional(
-        sqlx::query_as::<_, TenantUser>(
-            "SELECT u.*, r.permission_type, r.permissions AS role_permissions
+    let admin = guard
+        .fetch_optional(
+            sqlx::query_as::<_, TenantUser>(
+                "SELECT u.*, r.permission_type, r.permissions AS role_permissions
              FROM users u
              JOIN roles r ON r.id = u.role_id
              WHERE u.email = $1 AND u.status = true",
+            )
+            .bind(&payload.email),
         )
-        .bind(&payload.email),
-    )
-    .await;
+        .await;
 
     let _ = guard.release().await;
 

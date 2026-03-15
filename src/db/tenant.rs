@@ -29,8 +29,6 @@ pub async fn set_tenant(conn: &mut PgConnection, schema_name: &str) -> anyhow::R
 /// Must be called before returning a connection to the pool to prevent
 /// cross-tenant data leaks.
 pub async fn reset_tenant(conn: &mut PgConnection) -> anyhow::Result<()> {
-    sqlx::query("RESET search_path")
-        .execute(&mut *conn)
-        .await?;
+    sqlx::query("RESET search_path").execute(&mut *conn).await?;
     Ok(())
 }

@@ -1,14 +1,14 @@
+use axum::Json;
 use axum::extract::Extension;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 use validator::Validate;
 
 use crate::auth::bouncer::validate_payload;
 use crate::auth::password::{hash_password, verify_password};
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;
 
@@ -51,7 +51,9 @@ pub async fn update(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<AccountUpdatePayload>,
 ) -> Response {
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -62,34 +64,34 @@ pub async fn update(
     };
 
     let result = guard
-        .fetch_optional(sqlx::query_as::<_, TenantUser>(
-            "UPDATE users
+        .fetch_optional(
+            sqlx::query_as::<_, TenantUser>(
+                "UPDATE users
              SET first_name = $1, last_name = $2, email = $3, updated_at = NOW()
              WHERE id = $4
              RETURNING *, NULL::text AS permission_type, NULL::jsonb AS role_permissions",
+            )
+            .bind(&payload.first_name)
+            .bind(&payload.last_name)
+            .bind(&payload.email)
+            .bind(user.id),
         )
-        .bind(&payload.first_name)
-        .bind(&payload.last_name)
-        .bind(&payload.email)
-        .bind(user.id))
         .await;
 
     let _ = guard.release().await;
 
     match result {
-        Ok(Some(updated)) => {
-            Json(serde_json::json!({
-                "data": {
-                    "id": updated.id,
-                    "first_name": updated.first_name,
-                    "last_name": updated.last_name,
-                    "email": updated.email,
-                    "image": updated.image,
-                },
-                "message": "Account updated successfully."
-            }))
-            .into_response()
-        }
+        Ok(Some(updated)) => Json(serde_json::json!({
+            "data": {
+                "id": updated.id,
+                "first_name": updated.first_name,
+                "last_name": updated.last_name,
+                "email": updated.email,
+                "image": updated.image,
+            },
+            "message": "Account updated successfully."
+        }))
+        .into_response(),
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "User not found." })),
@@ -117,7 +119,9 @@ pub async fn update_password(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<PasswordUpdatePayload>,
 ) -> Response {
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     // Validate confirmation matches
     if payload.password != payload.password_confirmation {
@@ -163,11 +167,9 @@ pub async fn update_password(
 
     let result = guard
         .execute(
-            sqlx::query(
-                "UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2",
-            )
-            .bind(&password_hash)
-            .bind(user.id),
+            sqlx::query("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2")
+                .bind(&password_hash)
+                .bind(user.id),
         )
         .await;
 

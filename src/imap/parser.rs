@@ -69,16 +69,13 @@ pub fn parse_rfc822(raw: &[u8], is_seen: bool) -> Option<ParsedEmail> {
     let body_html = message.body_html(0).map(|s| s.to_string());
     let body_text = message.body_text(0).map(|s| s.to_string());
 
-    let date = message.date().and_then(|dt| {
-        chrono::DateTime::from_timestamp(dt.to_timestamp(), 0)
-    });
+    let date = message
+        .date()
+        .and_then(|dt| chrono::DateTime::from_timestamp(dt.to_timestamp(), 0));
 
     let mut attachments = Vec::new();
     for part in message.attachments() {
-        let file_name = part
-            .attachment_name()
-            .unwrap_or("attachment")
-            .to_string();
+        let file_name = part.attachment_name().unwrap_or("attachment").to_string();
         let content_type = part
             .content_type()
             .map(|ct| {

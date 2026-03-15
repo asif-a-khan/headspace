@@ -114,11 +114,17 @@ pub async fn seed_default_tenant_admin(
         .await?;
 
     if count.0 > 0 {
-        tracing::debug!(schema = schema_name, "Tenant admin already exists, skipping seed");
+        tracing::debug!(
+            schema = schema_name,
+            "Tenant admin already exists, skipping seed"
+        );
         return Ok(());
     }
 
-    tracing::info!(schema = schema_name, "No tenant admins found — seeding default data");
+    tracing::info!(
+        schema = schema_name,
+        "No tenant admins found — seeding default data"
+    );
 
     let role_id: (i64,) = sqlx::query_as(
         "INSERT INTO roles (name, description, permission_type, permissions)
@@ -193,51 +199,417 @@ async fn seed_system_attributes(conn: &mut PgConnection) -> anyhow::Result<()> {
     }
 
     // (code, name, type, entity_type, sort_order, validation, is_required, is_unique, quick_add, lookup_type)
-    let attrs: &[(&str, &str, &str, &str, i32, Option<&str>, bool, bool, bool, Option<&str>)] = &[
+    #[allow(clippy::type_complexity)]
+    let attrs: &[(
+        &str,
+        &str,
+        &str,
+        &str,
+        i32,
+        Option<&str>,
+        bool,
+        bool,
+        bool,
+        Option<&str>,
+    )] = &[
         // Leads (9 attributes — matches Krayin)
-        ("title", "Title", "text", "leads", 1, None, true, false, true, None),
-        ("description", "Description", "textarea", "leads", 2, None, false, false, true, None),
-        ("lead_value", "Lead Value", "price", "leads", 3, Some("decimal"), true, false, true, None),
-        ("lead_source_id", "Source", "select", "leads", 4, None, true, false, true, Some("lead_sources")),
-        ("lead_type_id", "Type", "select", "leads", 5, None, true, false, true, Some("lead_types")),
-        ("user_id", "Sales Owner", "select", "leads", 7, None, false, false, true, Some("users")),
-        ("expected_close_date", "Expected Close Date", "date", "leads", 8, None, false, false, true, None),
-        ("lead_pipeline_id", "Pipeline", "lookup", "leads", 9, None, true, false, true, Some("lead_pipelines")),
-        ("lead_pipeline_stage_id", "Stage", "lookup", "leads", 10, None, true, false, true, Some("lead_pipeline_stages")),
+        (
+            "title", "Title", "text", "leads", 1, None, true, false, true, None,
+        ),
+        (
+            "description",
+            "Description",
+            "textarea",
+            "leads",
+            2,
+            None,
+            false,
+            false,
+            true,
+            None,
+        ),
+        (
+            "lead_value",
+            "Lead Value",
+            "price",
+            "leads",
+            3,
+            Some("decimal"),
+            true,
+            false,
+            true,
+            None,
+        ),
+        (
+            "lead_source_id",
+            "Source",
+            "select",
+            "leads",
+            4,
+            None,
+            true,
+            false,
+            true,
+            Some("lead_sources"),
+        ),
+        (
+            "lead_type_id",
+            "Type",
+            "select",
+            "leads",
+            5,
+            None,
+            true,
+            false,
+            true,
+            Some("lead_types"),
+        ),
+        (
+            "user_id",
+            "Sales Owner",
+            "select",
+            "leads",
+            7,
+            None,
+            false,
+            false,
+            true,
+            Some("users"),
+        ),
+        (
+            "expected_close_date",
+            "Expected Close Date",
+            "date",
+            "leads",
+            8,
+            None,
+            false,
+            false,
+            true,
+            None,
+        ),
+        (
+            "lead_pipeline_id",
+            "Pipeline",
+            "lookup",
+            "leads",
+            9,
+            None,
+            true,
+            false,
+            true,
+            Some("lead_pipelines"),
+        ),
+        (
+            "lead_pipeline_stage_id",
+            "Stage",
+            "lookup",
+            "leads",
+            10,
+            None,
+            true,
+            false,
+            true,
+            Some("lead_pipeline_stages"),
+        ),
         // Persons (6 attributes — matches Krayin)
-        ("name", "Name", "text", "persons", 1, None, true, false, true, None),
-        ("emails", "Emails", "email", "persons", 2, None, true, true, true, None),
-        ("contact_numbers", "Contact Numbers", "phone", "persons", 3, Some("numeric"), false, true, true, None),
-        ("job_title", "Job Title", "text", "persons", 4, None, false, false, true, None),
-        ("user_id", "Sales Owner", "lookup", "persons", 5, None, false, false, true, Some("users")),
-        ("organization_id", "Organization", "lookup", "persons", 6, None, false, false, true, Some("organizations")),
+        (
+            "name", "Name", "text", "persons", 1, None, true, false, true, None,
+        ),
+        (
+            "emails", "Emails", "email", "persons", 2, None, true, true, true, None,
+        ),
+        (
+            "contact_numbers",
+            "Contact Numbers",
+            "phone",
+            "persons",
+            3,
+            Some("numeric"),
+            false,
+            true,
+            true,
+            None,
+        ),
+        (
+            "job_title",
+            "Job Title",
+            "text",
+            "persons",
+            4,
+            None,
+            false,
+            false,
+            true,
+            None,
+        ),
+        (
+            "user_id",
+            "Sales Owner",
+            "lookup",
+            "persons",
+            5,
+            None,
+            false,
+            false,
+            true,
+            Some("users"),
+        ),
+        (
+            "organization_id",
+            "Organization",
+            "lookup",
+            "persons",
+            6,
+            None,
+            false,
+            false,
+            true,
+            Some("organizations"),
+        ),
         // Organizations (3 attributes — matches Krayin)
-        ("name", "Name", "text", "organizations", 1, None, true, true, true, None),
-        ("address", "Address", "address", "organizations", 2, None, false, false, true, None),
-        ("user_id", "Sales Owner", "lookup", "organizations", 3, None, false, false, true, Some("users")),
+        (
+            "name",
+            "Name",
+            "text",
+            "organizations",
+            1,
+            None,
+            true,
+            true,
+            true,
+            None,
+        ),
+        (
+            "address",
+            "Address",
+            "address",
+            "organizations",
+            2,
+            None,
+            false,
+            false,
+            true,
+            None,
+        ),
+        (
+            "user_id",
+            "Sales Owner",
+            "lookup",
+            "organizations",
+            3,
+            None,
+            false,
+            false,
+            true,
+            Some("users"),
+        ),
         // Products (5 attributes — matches Krayin)
-        ("name", "Name", "text", "products", 1, None, true, false, true, None),
-        ("description", "Description", "textarea", "products", 2, None, false, false, true, None),
-        ("sku", "SKU", "text", "products", 3, None, true, true, true, None),
-        ("quantity", "Quantity", "text", "products", 4, Some("numeric"), true, false, true, None),
-        ("price", "Price", "price", "products", 5, Some("decimal"), true, false, true, None),
+        (
+            "name", "Name", "text", "products", 1, None, true, false, true, None,
+        ),
+        (
+            "description",
+            "Description",
+            "textarea",
+            "products",
+            2,
+            None,
+            false,
+            false,
+            true,
+            None,
+        ),
+        (
+            "sku", "SKU", "text", "products", 3, None, true, true, true, None,
+        ),
+        (
+            "quantity",
+            "Quantity",
+            "text",
+            "products",
+            4,
+            Some("numeric"),
+            true,
+            false,
+            true,
+            None,
+        ),
+        (
+            "price",
+            "Price",
+            "price",
+            "products",
+            5,
+            Some("decimal"),
+            true,
+            false,
+            true,
+            None,
+        ),
         // Quotes (13 attributes — matches Krayin)
-        ("user_id", "Sales Owner", "select", "quotes", 1, None, true, false, true, Some("users")),
-        ("subject", "Subject", "text", "quotes", 2, None, true, false, true, None),
-        ("description", "Description", "textarea", "quotes", 3, None, false, false, true, None),
-        ("billing_address", "Billing Address", "address", "quotes", 4, None, true, false, true, None),
-        ("shipping_address", "Shipping Address", "address", "quotes", 5, None, false, false, true, None),
-        ("discount_percent", "Discount Percent", "text", "quotes", 6, Some("decimal"), false, false, true, None),
-        ("discount_amount", "Discount Amount", "price", "quotes", 7, Some("decimal"), false, false, true, None),
-        ("tax_amount", "Tax Amount", "price", "quotes", 8, Some("decimal"), false, false, true, None),
-        ("adjustment_amount", "Adjustment Amount", "price", "quotes", 9, Some("decimal"), false, false, true, None),
-        ("sub_total", "Sub Total", "price", "quotes", 10, Some("decimal"), true, false, true, None),
-        ("grand_total", "Grand Total", "price", "quotes", 11, Some("decimal"), true, false, true, None),
-        ("expired_at", "Expired At", "date", "quotes", 12, None, true, false, true, None),
-        ("person_id", "Person", "lookup", "quotes", 13, None, true, false, true, Some("persons")),
+        (
+            "user_id",
+            "Sales Owner",
+            "select",
+            "quotes",
+            1,
+            None,
+            true,
+            false,
+            true,
+            Some("users"),
+        ),
+        (
+            "subject", "Subject", "text", "quotes", 2, None, true, false, true, None,
+        ),
+        (
+            "description",
+            "Description",
+            "textarea",
+            "quotes",
+            3,
+            None,
+            false,
+            false,
+            true,
+            None,
+        ),
+        (
+            "billing_address",
+            "Billing Address",
+            "address",
+            "quotes",
+            4,
+            None,
+            true,
+            false,
+            true,
+            None,
+        ),
+        (
+            "shipping_address",
+            "Shipping Address",
+            "address",
+            "quotes",
+            5,
+            None,
+            false,
+            false,
+            true,
+            None,
+        ),
+        (
+            "discount_percent",
+            "Discount Percent",
+            "text",
+            "quotes",
+            6,
+            Some("decimal"),
+            false,
+            false,
+            true,
+            None,
+        ),
+        (
+            "discount_amount",
+            "Discount Amount",
+            "price",
+            "quotes",
+            7,
+            Some("decimal"),
+            false,
+            false,
+            true,
+            None,
+        ),
+        (
+            "tax_amount",
+            "Tax Amount",
+            "price",
+            "quotes",
+            8,
+            Some("decimal"),
+            false,
+            false,
+            true,
+            None,
+        ),
+        (
+            "adjustment_amount",
+            "Adjustment Amount",
+            "price",
+            "quotes",
+            9,
+            Some("decimal"),
+            false,
+            false,
+            true,
+            None,
+        ),
+        (
+            "sub_total",
+            "Sub Total",
+            "price",
+            "quotes",
+            10,
+            Some("decimal"),
+            true,
+            false,
+            true,
+            None,
+        ),
+        (
+            "grand_total",
+            "Grand Total",
+            "price",
+            "quotes",
+            11,
+            Some("decimal"),
+            true,
+            false,
+            true,
+            None,
+        ),
+        (
+            "expired_at",
+            "Expired At",
+            "date",
+            "quotes",
+            12,
+            None,
+            true,
+            false,
+            true,
+            None,
+        ),
+        (
+            "person_id",
+            "Person",
+            "lookup",
+            "quotes",
+            13,
+            None,
+            true,
+            false,
+            true,
+            Some("persons"),
+        ),
     ];
 
-    for (code, name, attr_type, entity_type, sort_order, validation, is_required, is_unique, quick_add, lookup_type) in attrs {
+    for (
+        code,
+        name,
+        attr_type,
+        entity_type,
+        sort_order,
+        validation,
+        is_required,
+        is_unique,
+        quick_add,
+        lookup_type,
+    ) in attrs
+    {
         sqlx::query(
             "INSERT INTO attributes (code, name, type, entity_type, sort_order, validation, is_required, is_unique, quick_add, is_user_defined, lookup_type)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, $10)",
@@ -320,12 +692,12 @@ async fn seed_pipeline_defaults(conn: &mut PgConnection) -> anyhow::Result<()> {
     // Link stages to pipeline with probabilities
     // (stage_index, probability, sort_order)
     let pipeline_stages: &[(usize, i32, i32)] = &[
-        (0, 100, 1),  // New
-        (1, 100, 2),  // Follow Up
-        (2, 100, 3),  // Prospect
-        (3, 100, 4),  // Negotiation
-        (4, 100, 5),  // Won
-        (5, 0, 6),    // Lost
+        (0, 100, 1), // New
+        (1, 100, 2), // Follow Up
+        (2, 100, 3), // Prospect
+        (3, 100, 4), // Negotiation
+        (4, 100, 5), // Won
+        (5, 0, 6),   // Lost
     ];
 
     for (stage_idx, probability, sort_order) in pipeline_stages {
@@ -378,16 +750,13 @@ async fn seed_default_tags(conn: &mut PgConnection, user_id: i64) -> anyhow::Res
 
 /// Seed default tenant admins for all active tenants.
 pub async fn seed_all_tenant_admins(pool: &PgPool) -> anyhow::Result<()> {
-    let tenants = sqlx::query_as::<_, Company>(
-        "SELECT * FROM main.companies WHERE is_active = true",
-    )
-    .fetch_all(pool)
-    .await?;
+    let tenants =
+        sqlx::query_as::<_, Company>("SELECT * FROM main.companies WHERE is_active = true")
+            .fetch_all(pool)
+            .await?;
 
     for tenant in &tenants {
-        if let Err(e) =
-            seed_default_tenant_admin(pool, &tenant.schema_name, &tenant.domain).await
-        {
+        if let Err(e) = seed_default_tenant_admin(pool, &tenant.schema_name, &tenant.domain).await {
             tracing::error!(
                 schema = %tenant.schema_name,
                 error = %e,

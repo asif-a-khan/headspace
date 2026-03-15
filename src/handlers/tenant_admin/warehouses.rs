@@ -2,13 +2,13 @@ use axum::extract::{Extension, Path};
 use axum::response::{IntoResponse, Response};
 use tower_sessions::Session;
 
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::middleware::csrf::get_csrf_token;
 use crate::models::company::Company;
-use crate::models::warehouse::Warehouse;
 use crate::models::tenant_admin::TenantUser;
-use crate::views::tenant_admin::{WarehouseIndex, WarehouseCreate, WarehouseEdit};
+use crate::models::warehouse::Warehouse;
+use crate::views::tenant_admin::{WarehouseCreate, WarehouseEdit, WarehouseIndex};
 
 pub async fn index(
     session: Session,
@@ -22,7 +22,9 @@ pub async fn index(
         Err(_) => return WarehouseIndex::new(csrf_token, "{}".to_string()).into_response(),
     };
     let warehouses = guard
-        .fetch_all(sqlx::query_as::<_, Warehouse>("SELECT * FROM warehouses ORDER BY id"))
+        .fetch_all(sqlx::query_as::<_, Warehouse>(
+            "SELECT * FROM warehouses ORDER BY id",
+        ))
         .await
         .unwrap_or_default();
     let _ = guard.release().await;
@@ -63,7 +65,9 @@ pub async fn edit(
         Err(_) => return WarehouseEdit::new(csrf_token, "{}".to_string()).into_response(),
     };
     let warehouse = guard
-        .fetch_optional(sqlx::query_as::<_, Warehouse>("SELECT * FROM warehouses WHERE id = $1").bind(id))
+        .fetch_optional(
+            sqlx::query_as::<_, Warehouse>("SELECT * FROM warehouses WHERE id = $1").bind(id),
+        )
         .await
         .ok()
         .flatten();

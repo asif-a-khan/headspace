@@ -1,12 +1,12 @@
+use axum::Json;
 use axum::extract::{Extension, Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 
 use crate::auth::bouncer::bouncer;
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;
 
@@ -238,8 +238,8 @@ pub async fn store(
 
     let folder = if is_draft { "draft" } else { "sent" };
     let to_json = serde_json::to_value(&payload.to).unwrap_or_default();
-    let cc_json = serde_json::to_value(&payload.cc.unwrap_or_default()).unwrap_or_default();
-    let bcc_json = serde_json::to_value(&payload.bcc.unwrap_or_default()).unwrap_or_default();
+    let cc_json = serde_json::to_value(payload.cc.unwrap_or_default()).unwrap_or_default();
+    let bcc_json = serde_json::to_value(payload.bcc.unwrap_or_default()).unwrap_or_default();
 
     let msg_id = format!(
         "{}@headspace",
@@ -264,7 +264,7 @@ pub async fn store(
             .bind(&bcc_json)
             .bind(folder)
             .bind(&msg_id)
-            .bind(&payload.parent_id.map(|_| msg_id.clone()))
+            .bind(payload.parent_id.map(|_| msg_id.clone()))
             .bind(payload.person_id)
             .bind(payload.lead_id)
             .bind(payload.parent_id)
@@ -287,41 +287,37 @@ pub async fn store(
     };
 
     // Send via SMTP if not a draft
-    if !is_draft {
-        if let Err(e) = send_email_smtp(&config, &email).await {
-            tracing::error!("SMTP send failed: {e}");
-            // Move to draft since send failed
-            let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
-                Ok(g) => g,
-                Err(_) => {
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(serde_json::json!({
-                            "error": format!("Email saved but send failed: {e}"),
-                            "data": email,
-                        })),
-                    )
-                        .into_response();
-                }
-            };
-            let _ = guard
-                .execute(
-                    sqlx::query(
-                        "UPDATE emails SET folder = 'draft', updated_at = NOW() WHERE id = $1",
-                    )
-                    .bind(email.id),
+    if !is_draft && let Err(e) = send_email_smtp(&config, &email).await {
+        tracing::error!("SMTP send failed: {e}");
+        // Move to draft since send failed
+        let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
+            Ok(g) => g,
+            Err(_) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({
+                        "error": format!("Email saved but send failed: {e}"),
+                        "data": email,
+                    })),
                 )
-                .await;
-            let _ = guard.release().await;
-            return (
-                StatusCode::UNPROCESSABLE_ENTITY,
-                Json(serde_json::json!({
-                    "error": format!("Email saved as draft — send failed: {e}"),
-                    "data": email,
-                })),
+                    .into_response();
+            }
+        };
+        let _ = guard
+            .execute(
+                sqlx::query("UPDATE emails SET folder = 'draft', updated_at = NOW() WHERE id = $1")
+                    .bind(email.id),
             )
-                .into_response();
-        }
+            .await;
+        let _ = guard.release().await;
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::json!({
+                "error": format!("Email saved as draft — send failed: {e}"),
+                "data": email,
+            })),
+        )
+            .into_response();
     }
 
     let msg = if is_draft {
@@ -374,7 +370,10 @@ pub async fn update(
         sets.push(format!("lead_id = {lead_id}"));
     }
 
-    let sql = format!("UPDATE emails SET {} WHERE id = $1 RETURNING *", sets.join(", "));
+    let sql = format!(
+        "UPDATE emails SET {} WHERE id = $1 RETURNING *",
+        sets.join(", ")
+    );
     let result = guard
         .fetch_optional(sqlx::query_as::<_, Email>(&sql).bind(id))
         .await;
@@ -382,7 +381,9 @@ pub async fn update(
     let _ = guard.release().await;
 
     match result {
-        Ok(Some(e)) => Json(serde_json::json!({ "data": e, "message": "Email updated." })).into_response(),
+        Ok(Some(e)) => {
+            Json(serde_json::json!({ "data": e, "message": "Email updated." })).into_response()
+        }
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "Email not found." })),
@@ -416,9 +417,7 @@ pub async fn destroy(
 
     // Check current folder — if already in trash, hard delete
     let current = guard
-        .fetch_optional(
-            sqlx::query_as::<_, Email>("SELECT * FROM emails WHERE id = $1").bind(id),
-        )
+        .fetch_optional(sqlx::query_as::<_, Email>("SELECT * FROM emails WHERE id = $1").bind(id))
         .await;
 
     match current {
@@ -464,7 +463,7 @@ async fn send_email_smtp(
     config: &std::collections::HashMap<String, String>,
     email: &Email,
 ) -> Result<(), String> {
-    use lettre::message::{header::ContentType, Mailbox, MultiPart, SinglePart};
+    use lettre::message::{Mailbox, MultiPart, SinglePart, header::ContentType};
     use lettre::transport::smtp::authentication::Credentials;
     use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 
@@ -493,8 +492,8 @@ async fn send_email_smtp(
         .parse()
         .map_err(|e| format!("Invalid from address: {e}"))?;
 
-    let recipients: Vec<String> = serde_json::from_value(email.reply_to.clone())
-        .unwrap_or_default();
+    let recipients: Vec<String> =
+        serde_json::from_value(email.reply_to.clone()).unwrap_or_default();
 
     if recipients.is_empty() {
         return Err("No recipients.".to_string());
@@ -577,7 +576,10 @@ async fn send_email_smtp(
 fn html_to_text(html: &str) -> String {
     let mut text = html.to_string();
     // Replace <br> and </p> with newlines
-    text = text.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n");
+    text = text
+        .replace("<br>", "\n")
+        .replace("<br/>", "\n")
+        .replace("<br />", "\n");
     text = text.replace("</p>", "\n\n");
     // Strip remaining tags
     let mut result = String::new();

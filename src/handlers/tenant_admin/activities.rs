@@ -2,8 +2,8 @@ use axum::extract::{Extension, Path};
 use axum::response::{IntoResponse, Response};
 use tower_sessions::Session;
 
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::middleware::csrf::get_csrf_token;
 use crate::models::activity::ActivityRow;
 use crate::models::company::Company;
@@ -134,20 +134,26 @@ pub async fn edit(
         .unwrap_or_default();
 
     let files = guard
-        .fetch_all(sqlx::query_as::<_, crate::api::tenant_admin::activities::ActivityFile>(
-            "SELECT * FROM activity_files WHERE activity_id = $1 ORDER BY id",
-        ).bind(id))
+        .fetch_all(
+            sqlx::query_as::<_, crate::api::tenant_admin::activities::ActivityFile>(
+                "SELECT * FROM activity_files WHERE activity_id = $1 ORDER BY id",
+            )
+            .bind(id),
+        )
         .await
         .unwrap_or_default();
 
     // Fetch linked leads
     let linked_leads = guard
-        .fetch_all(sqlx::query_as::<_, crate::models::lead::LeadSearchRow>(
-            "SELECT l.id, l.title FROM leads l
+        .fetch_all(
+            sqlx::query_as::<_, crate::models::lead::LeadSearchRow>(
+                "SELECT l.id, l.title FROM leads l
              JOIN lead_activities la ON la.lead_id = l.id
              WHERE la.activity_id = $1
              ORDER BY l.id",
-        ).bind(id))
+            )
+            .bind(id),
+        )
         .await
         .unwrap_or_default();
 

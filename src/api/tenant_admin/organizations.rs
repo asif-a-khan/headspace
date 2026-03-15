@@ -1,13 +1,13 @@
+use axum::Json;
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 use validator::Validate;
 
 use crate::auth::bouncer::{bouncer, validate_payload};
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::organization::{Organization, OrganizationRow};
 use crate::models::tenant_admin::TenantUser;
@@ -27,7 +27,9 @@ pub async fn list(
     Extension(company): Extension<Company>,
     Extension(user): Extension<TenantUser>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "contacts.organizations") { return resp; }
+    if let Err(resp) = bouncer(&user, "contacts.organizations") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -67,8 +69,12 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<OrganizationPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "contacts.organizations.create") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "contacts.organizations.create") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -92,10 +98,20 @@ pub async fn store(
     let _ = guard.release().await;
 
     match result {
-        Ok(org) => (StatusCode::CREATED, Json(serde_json::json!({ "data": org, "message": "Organization created successfully." }))).into_response(),
+        Ok(org) => (
+            StatusCode::CREATED,
+            Json(
+                serde_json::json!({ "data": org, "message": "Organization created successfully." }),
+            ),
+        )
+            .into_response(),
         Err(e) => {
             tracing::error!("Failed to create organization: {e}");
-            (StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({ "error": "Failed to create organization." }))).into_response()
+            (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "Failed to create organization." })),
+            )
+                .into_response()
         }
     }
 }
@@ -106,7 +122,9 @@ pub async fn show(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "contacts.organizations.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "contacts.organizations.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -118,16 +136,23 @@ pub async fn show(
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let org = guard
-        .fetch_optional(sqlx::query_as::<_, Organization>(&format!(
-            "SELECT * FROM organizations WHERE id = $1{vp}"
-        )).bind(id))
+        .fetch_optional(
+            sqlx::query_as::<_, Organization>(&format!(
+                "SELECT * FROM organizations WHERE id = $1{vp}"
+            ))
+            .bind(id),
+        )
         .await;
 
     let _ = guard.release().await;
 
     match org {
         Ok(Some(o)) => Json(serde_json::json!({ "data": o })).into_response(),
-        Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Organization not found." }))).into_response(),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Organization not found." })),
+        )
+            .into_response(),
         Err(e) => {
             tracing::error!("Failed to fetch organization: {e}");
             internal_error()
@@ -142,8 +167,12 @@ pub async fn update(
     Path(id): Path<i64>,
     Json(payload): Json<OrganizationPayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "contacts.organizations.edit") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "contacts.organizations.edit") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -155,24 +184,37 @@ pub async fn update(
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let result = guard
-        .fetch_optional(sqlx::query_as::<_, Organization>(&format!(
-            "UPDATE organizations SET name = $1, address = $2, user_id = $3, updated_at = NOW()
+        .fetch_optional(
+            sqlx::query_as::<_, Organization>(&format!(
+                "UPDATE organizations SET name = $1, address = $2, user_id = $3, updated_at = NOW()
              WHERE id = $4{vp} RETURNING *"
-        ))
-        .bind(&payload.name)
-        .bind(&payload.address)
-        .bind(&payload.user_id)
-        .bind(id))
+            ))
+            .bind(&payload.name)
+            .bind(&payload.address)
+            .bind(payload.user_id)
+            .bind(id),
+        )
         .await;
 
     let _ = guard.release().await;
 
     match result {
-        Ok(Some(o)) => Json(serde_json::json!({ "data": o, "message": "Organization updated successfully." })).into_response(),
-        Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Organization not found." }))).into_response(),
+        Ok(Some(o)) => {
+            Json(serde_json::json!({ "data": o, "message": "Organization updated successfully." }))
+                .into_response()
+        }
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Organization not found." })),
+        )
+            .into_response(),
         Err(e) => {
             tracing::error!("Failed to update organization: {e}");
-            (StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({ "error": "Failed to update organization." }))).into_response()
+            (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "Failed to update organization." })),
+            )
+                .into_response()
         }
     }
 }
@@ -183,7 +225,9 @@ pub async fn destroy(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "contacts.organizations.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "contacts.organizations.delete") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -194,15 +238,28 @@ pub async fn destroy(
     };
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
-    let result = guard.execute(sqlx::query(&format!("DELETE FROM organizations WHERE id = $1{vp}")).bind(id)).await;
+    let result = guard
+        .execute(sqlx::query(&format!("DELETE FROM organizations WHERE id = $1{vp}")).bind(id))
+        .await;
     let _ = guard.release().await;
 
     match result {
-        Ok(r) if r.rows_affected() > 0 => Json(serde_json::json!({ "message": "Organization deleted successfully." })).into_response(),
-        Ok(_) => (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Organization not found." }))).into_response(),
+        Ok(r) if r.rows_affected() > 0 => {
+            Json(serde_json::json!({ "message": "Organization deleted successfully." }))
+                .into_response()
+        }
+        Ok(_) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Organization not found." })),
+        )
+            .into_response(),
         Err(e) => {
             tracing::error!("Failed to delete organization: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed to delete organization." }))).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Failed to delete organization." })),
+            )
+                .into_response()
         }
     }
 }
@@ -220,9 +277,14 @@ pub async fn mass_delete(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<MassDeletePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "contacts.organizations.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "contacts.organizations.delete") {
+        return resp;
+    }
     if payload.ids.is_empty() {
-        return Json(serde_json::json!({ "message": "No organizations selected.", "deleted_count": 0 })).into_response();
+        return Json(
+            serde_json::json!({ "message": "No organizations selected.", "deleted_count": 0 }),
+        )
+        .into_response();
     }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
@@ -235,7 +297,12 @@ pub async fn mass_delete(
 
     let vp = view_permission_filter(user.id, &user.view_permission).replace("t.user_id", "user_id");
     let result = guard
-        .execute(sqlx::query(&format!("DELETE FROM organizations WHERE id = ANY($1::bigint[]){vp}")).bind(&payload.ids))
+        .execute(
+            sqlx::query(&format!(
+                "DELETE FROM organizations WHERE id = ANY($1::bigint[]){vp}"
+            ))
+            .bind(&payload.ids),
+        )
         .await;
 
     let _ = guard.release().await;
@@ -247,11 +314,19 @@ pub async fn mass_delete(
         }
         Err(e) => {
             tracing::error!("Failed to mass delete organizations: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "Failed to delete organizations." }))).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Failed to delete organizations." })),
+            )
+                .into_response()
         }
     }
 }
 
 fn internal_error() -> Response {
-    (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "An internal error occurred." }))).into_response()
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(serde_json::json!({ "error": "An internal error occurred." })),
+    )
+        .into_response()
 }

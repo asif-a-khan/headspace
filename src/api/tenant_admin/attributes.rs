@@ -1,13 +1,13 @@
+use axum::Json;
 use axum::extract::{Extension, Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 use validator::Validate;
 
 use crate::auth::bouncer::{bouncer, validate_payload};
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::attribute::{Attribute, AttributeOption};
 use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;
@@ -50,7 +50,9 @@ pub async fn list(
     Extension(user): Extension<TenantUser>,
     Query(query): Query<ListQuery>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.attributes") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.attributes") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -94,8 +96,12 @@ pub async fn store(
     Extension(user): Extension<TenantUser>,
     Json(payload): Json<AttributePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.attributes.create") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.attributes.create") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -127,10 +133,11 @@ pub async fn store(
     match result {
         Ok(attr) => {
             // Create options if this is a select/multiselect type
-            if let Some(options) = &payload.options {
-                if attr.attr_type == "select" || attr.attr_type == "multiselect" {
-                    for (i, opt) in options.iter().enumerate() {
-                        let _ = guard
+            if let Some(options) = &payload.options
+                && (attr.attr_type == "select" || attr.attr_type == "multiselect")
+            {
+                for (i, opt) in options.iter().enumerate() {
+                    let _ = guard
                             .execute(
                                 sqlx::query(
                                     "INSERT INTO attribute_options (name, sort_order, attribute_id) VALUES ($1, $2, $3)",
@@ -140,7 +147,6 @@ pub async fn store(
                                 .bind(attr.id),
                             )
                             .await;
-                    }
                 }
             }
 
@@ -174,7 +180,9 @@ pub async fn show(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.attributes.edit") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.attributes.edit") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,
@@ -185,7 +193,9 @@ pub async fn show(
     };
 
     let attr = guard
-        .fetch_optional(sqlx::query_as::<_, Attribute>("SELECT * FROM attributes WHERE id = $1").bind(id))
+        .fetch_optional(
+            sqlx::query_as::<_, Attribute>("SELECT * FROM attributes WHERE id = $1").bind(id),
+        )
         .await;
 
     let options = guard
@@ -221,8 +231,12 @@ pub async fn update(
     Path(id): Path<i64>,
     Json(payload): Json<AttributePayload>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.attributes.edit") { return resp; }
-    if let Err(resp) = validate_payload(&payload) { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.attributes.edit") {
+        return resp;
+    }
+    if let Err(resp) = validate_payload(&payload) {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -254,21 +268,22 @@ pub async fn update(
     match result {
         Ok(Some(attr)) => {
             // Sync options for select/multiselect types
-            if let Some(options) = &payload.options {
-                if attr.attr_type == "select" || attr.attr_type == "multiselect" {
-                    for (i, opt) in options.iter().enumerate() {
-                        if opt.is_delete {
-                            if let Some(opt_id) = opt.id {
-                                let _ = guard
+            if let Some(options) = &payload.options
+                && (attr.attr_type == "select" || attr.attr_type == "multiselect")
+            {
+                for (i, opt) in options.iter().enumerate() {
+                    if opt.is_delete {
+                        if let Some(opt_id) = opt.id {
+                            let _ = guard
                                     .execute(
                                         sqlx::query("DELETE FROM attribute_options WHERE id = $1 AND attribute_id = $2")
                                             .bind(opt_id)
                                             .bind(attr.id),
                                     )
                                     .await;
-                            }
-                        } else if let Some(opt_id) = opt.id {
-                            let _ = guard
+                        }
+                    } else if let Some(opt_id) = opt.id {
+                        let _ = guard
                                 .execute(
                                     sqlx::query(
                                         "UPDATE attribute_options SET name = $1, sort_order = $2, updated_at = NOW() WHERE id = $3 AND attribute_id = $4",
@@ -279,8 +294,8 @@ pub async fn update(
                                     .bind(attr.id),
                                 )
                                 .await;
-                        } else {
-                            let _ = guard
+                    } else {
+                        let _ = guard
                                 .execute(
                                     sqlx::query(
                                         "INSERT INTO attribute_options (name, sort_order, attribute_id) VALUES ($1, $2, $3)",
@@ -290,7 +305,6 @@ pub async fn update(
                                     .bind(attr.id),
                                 )
                                 .await;
-                        }
                     }
                 }
             }
@@ -303,7 +317,9 @@ pub async fn update(
             let _ = guard.release().await;
             (
                 StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": "Attribute not found or is a system attribute." })),
+                Json(
+                    serde_json::json!({ "error": "Attribute not found or is a system attribute." }),
+                ),
             )
                 .into_response()
         }
@@ -325,7 +341,9 @@ pub async fn destroy(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.attributes.delete") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.attributes.delete") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.writer(), &company.schema_name).await {
         Ok(g) => g,
@@ -336,14 +354,17 @@ pub async fn destroy(
     };
 
     let result = guard
-        .execute(sqlx::query("DELETE FROM attributes WHERE id = $1 AND is_user_defined = true").bind(id))
+        .execute(
+            sqlx::query("DELETE FROM attributes WHERE id = $1 AND is_user_defined = true").bind(id),
+        )
         .await;
 
     let _ = guard.release().await;
 
     match result {
         Ok(r) if r.rows_affected() > 0 => {
-            Json(serde_json::json!({ "message": "Attribute deleted successfully." })).into_response()
+            Json(serde_json::json!({ "message": "Attribute deleted successfully." }))
+                .into_response()
         }
         Ok(_) => (
             StatusCode::NOT_FOUND,
@@ -368,7 +389,9 @@ pub async fn list_options(
     Extension(user): Extension<TenantUser>,
     Path(id): Path<i64>,
 ) -> Response {
-    if let Err(resp) = bouncer(&user, "settings.attributes") { return resp; }
+    if let Err(resp) = bouncer(&user, "settings.attributes") {
+        return resp;
+    }
 
     let mut guard = match TenantGuard::acquire(db.reader(), &company.schema_name).await {
         Ok(g) => g,

@@ -109,8 +109,7 @@ where
             None => continue,
         };
 
-        if let Err(e) =
-            sync_folder(session, conn, imap_name, our_folder, schema_name, stats).await
+        if let Err(e) = sync_folder(session, conn, imap_name, our_folder, schema_name, stats).await
         {
             tracing::warn!(
                 folder = imap_name,
@@ -181,9 +180,7 @@ where
     for message in &messages {
         stats.messages_fetched += 1;
 
-        if let Err(e) =
-            process_message(message, conn, our_folder, schema_name, stats).await
-        {
+        if let Err(e) = process_message(message, conn, our_folder, schema_name, stats).await {
             tracing::debug!(
                 uid = ?message.uid,
                 folder = imap_folder,
@@ -206,32 +203,30 @@ async fn process_message(
     schema_name: &str,
     stats: &mut SyncStats,
 ) -> Result<(), ImapSyncError> {
-    let uid = fetch.uid.ok_or_else(|| {
-        ImapSyncError::Protocol("Message missing UID".to_string())
-    })?;
+    let uid = fetch
+        .uid
+        .ok_or_else(|| ImapSyncError::Protocol("Message missing UID".to_string()))?;
 
-    let body = fetch.body().ok_or_else(|| {
-        ImapSyncError::Parse(format!("UID {uid}: no body"))
-    })?;
+    let body = fetch
+        .body()
+        .ok_or_else(|| ImapSyncError::Parse(format!("UID {uid}: no body")))?;
 
     // Check \Seen flag
     let is_seen = fetch
         .flags()
         .any(|f| matches!(f, async_imap::types::Flag::Seen));
 
-    let parsed = super::parser::parse_rfc822(body, is_seen).ok_or_else(|| {
-        ImapSyncError::Parse(format!("UID {uid}: parse failed"))
-    })?;
+    let parsed = super::parser::parse_rfc822(body, is_seen)
+        .ok_or_else(|| ImapSyncError::Parse(format!("UID {uid}: parse failed")))?;
 
     // Dedup by message_id — if we already have this message, skip
     if let Some(ref msg_id) = parsed.message_id {
-        let existing: Option<(i64,)> = sqlx::query_as(
-            "SELECT id FROM emails WHERE message_id = $1 LIMIT 1",
-        )
-        .bind(msg_id)
-        .fetch_optional(&mut *conn)
-        .await
-        .map_err(ImapSyncError::Db)?;
+        let existing: Option<(i64,)> =
+            sqlx::query_as("SELECT id FROM emails WHERE message_id = $1 LIMIT 1")
+                .bind(msg_id)
+                .fetch_optional(&mut *conn)
+                .await
+                .map_err(ImapSyncError::Db)?;
 
         if existing.is_some() {
             stats.messages_skipped += 1;
@@ -241,14 +236,13 @@ async fn process_message(
 
     // Also dedup by imap_uid for messages without message_id
     if parsed.message_id.is_none() {
-        let existing: Option<(i64,)> = sqlx::query_as(
-            "SELECT id FROM emails WHERE imap_uid = $1 AND folder = $2 LIMIT 1",
-        )
-        .bind(uid as i64)
-        .bind(our_folder)
-        .fetch_optional(&mut *conn)
-        .await
-        .map_err(ImapSyncError::Db)?;
+        let existing: Option<(i64,)> =
+            sqlx::query_as("SELECT id FROM emails WHERE imap_uid = $1 AND folder = $2 LIMIT 1")
+                .bind(uid as i64)
+                .bind(our_folder)
+                .fetch_optional(&mut *conn)
+                .await
+                .map_err(ImapSyncError::Db)?;
 
         if existing.is_some() {
             stats.messages_skipped += 1;
@@ -258,14 +252,12 @@ async fn process_message(
 
     // Threading: find parent by in_reply_to
     let parent_id: Option<i64> = if let Some(ref irt) = parsed.in_reply_to {
-        sqlx::query_as::<_, (i64,)>(
-            "SELECT id FROM emails WHERE message_id = $1 LIMIT 1",
-        )
-        .bind(irt)
-        .fetch_optional(&mut *conn)
-        .await
-        .map_err(ImapSyncError::Db)?
-        .map(|row| row.0)
+        sqlx::query_as::<_, (i64,)>("SELECT id FROM emails WHERE message_id = $1 LIMIT 1")
+            .bind(irt)
+            .fetch_optional(&mut *conn)
+            .await
+            .map_err(ImapSyncError::Db)?
+            .map(|row| row.0)
     } else {
         None
     };
@@ -319,9 +311,7 @@ async fn process_message(
 
     // Save attachments
     for attachment in &parsed.attachments {
-        if let Err(e) =
-            save_attachment(email_id.0, attachment, schema_name, conn).await
-        {
+        if let Err(e) = save_attachment(email_id.0, attachment, schema_name, conn).await {
             tracing::warn!(
                 email_id = email_id.0,
                 file = %attachment.file_name,
@@ -349,9 +339,7 @@ async fn save_attachment(
         .await
         .map_err(ImapSyncError::Io)?;
 
-    let safe_name = attachment
-        .file_name
-        .replace(['/', '\\', '\0'], "_");
+    let safe_name = attachment.file_name.replace(['/', '\\', '\0'], "_");
     let file_name = format!("{}_{safe_name}", uuid::Uuid::new_v4());
     let file_path = format!("{dir}/{file_name}");
 
@@ -436,8 +424,7 @@ pub async fn sync_all_tenants(pool: &sqlx::PgPool) {
             }
         };
 
-        let config_map: HashMap<String, String> =
-            config_rows.into_iter().collect();
+        let config_map: HashMap<String, String> = config_rows.into_iter().collect();
 
         let imap_config = match ImapConfig::from_config_map(&config_map) {
             Some(c) if c.enabled && c.is_configured() => c,

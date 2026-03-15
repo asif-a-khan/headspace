@@ -1,13 +1,13 @@
+use axum::Json;
 use axum::extract::Extension;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 use std::collections::HashMap;
 
 use crate::auth::bouncer::bouncer;
-use crate::db::guard::TenantGuard;
 use crate::db::Database;
+use crate::db::guard::TenantGuard;
 use crate::models::company::Company;
 use crate::models::tenant_admin::TenantUser;
 
@@ -98,7 +98,9 @@ pub async fn update(
             let _ = guard.release().await;
             return (
                 StatusCode::UNPROCESSABLE_ENTITY,
-                Json(serde_json::json!({ "error": format!("Failed to save config key '{code}'.") })),
+                Json(
+                    serde_json::json!({ "error": format!("Failed to save config key '{code}'.") }),
+                ),
             )
                 .into_response();
         }
@@ -110,9 +112,7 @@ pub async fn update(
 }
 
 /// Helper: Load tenant config as a HashMap (for use in handlers).
-pub async fn load_tenant_config(
-    guard: &mut TenantGuard,
-) -> HashMap<String, String> {
+pub async fn load_tenant_config(guard: &mut TenantGuard) -> HashMap<String, String> {
     guard
         .fetch_all(sqlx::query_as::<_, ConfigRow>(
             "SELECT code, value FROM tenant_config",

@@ -1,7 +1,7 @@
+use axum::Json;
 use axum::extract::{Extension, Path};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 
 use crate::db::Database;
@@ -18,12 +18,10 @@ pub struct TenantPayload {
 }
 
 pub async fn list(Extension(db): Extension<Database>) -> Response {
-    let tenants = sqlx::query_as::<_, Company>(
-        "SELECT * FROM main.companies ORDER BY id DESC",
-    )
-    .fetch_all(db.reader())
-    .await
-    .unwrap_or_default();
+    let tenants = sqlx::query_as::<_, Company>("SELECT * FROM main.companies ORDER BY id DESC")
+        .fetch_all(db.reader())
+        .await
+        .unwrap_or_default();
 
     Json(serde_json::json!({ "data": tenants })).into_response()
 }
@@ -55,7 +53,9 @@ pub async fn store(
             // setup_new_tenant produces a !Send future (sqlx Migrator HRTB issue),
             // so we run it on a blocking thread via Handle::block_on which doesn't
             // require Send. Acceptable for infrequent tenant creation.
-            if let Err(e) = crate::db::migrate::create_tenant_schema(db.writer(), &schema_name).await {
+            if let Err(e) =
+                crate::db::migrate::create_tenant_schema(db.writer(), &schema_name).await
+            {
                 tracing::error!("Failed to create tenant schema: {e}");
             } else {
                 let pool = db.writer().clone();
@@ -90,16 +90,11 @@ pub async fn store(
     }
 }
 
-pub async fn show(
-    Extension(db): Extension<Database>,
-    Path(id): Path<i64>,
-) -> Response {
-    let tenant = sqlx::query_as::<_, Company>(
-        "SELECT * FROM main.companies WHERE id = $1",
-    )
-    .bind(id)
-    .fetch_optional(db.reader())
-    .await;
+pub async fn show(Extension(db): Extension<Database>, Path(id): Path<i64>) -> Response {
+    let tenant = sqlx::query_as::<_, Company>("SELECT * FROM main.companies WHERE id = $1")
+        .bind(id)
+        .fetch_optional(db.reader())
+        .await;
 
     match tenant {
         Ok(Some(t)) => Json(serde_json::json!({ "data": t })).into_response(),
@@ -167,10 +162,7 @@ pub async fn update(
     }
 }
 
-pub async fn destroy(
-    Extension(db): Extension<Database>,
-    Path(id): Path<i64>,
-) -> Response {
+pub async fn destroy(Extension(db): Extension<Database>, Path(id): Path<i64>) -> Response {
     let result = sqlx::query("DELETE FROM main.companies WHERE id = $1")
         .bind(id)
         .execute(db.writer())
