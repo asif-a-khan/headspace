@@ -5,6 +5,18 @@ All notable changes to Headspace CRM are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1-alpha] - 2026-03-16
+
+### Added
+
+- Multi-stage Dockerfile (node frontend build → rust release build → slim debian runtime)
+- Docker Compose setup with Postgres 17, nginx reverse proxy, and app service
+- `FALLBACK_TENANT` config option for running behind ngrok/tunnels without subdomains
+- `.dockerignore` to keep build context lean
+- nginx reverse proxy config with websocket support and 50MB upload limit
+- Live demo link in README with credentials
+- Docker quickstart section in README
+
 ## [0.1.0-alpha] - 2026-03-15
 
 Initial alpha release. Full-featured multi-tenant CRM with email integration.

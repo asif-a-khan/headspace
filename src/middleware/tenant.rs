@@ -42,7 +42,11 @@ pub async fn require_tenant(
         // "demo.headspace.local" → strip ".headspace.local" → "demo"
         let prefix = &hostname[..hostname.len() - primary.len()];
         let sub = prefix.strip_suffix('.').unwrap_or(prefix);
-        if sub.is_empty() { None } else { Some(sub.to_string()) }
+        if sub.is_empty() {
+            None
+        } else {
+            Some(sub.to_string())
+        }
     } else {
         None
     };
