@@ -8,6 +8,9 @@ pub struct Config {
     pub app_port: u16,
     pub session_secret: String,
     pub primary_domain: String,
+    // when set, requests that don't match any subdomain fall back to this tenant.
+    // handy for demos behind ngrok/tunnels where the domain is unpredictable.
+    pub fallback_tenant: Option<String>,
 }
 
 impl Config {
@@ -23,6 +26,7 @@ impl Config {
                 .parse()?,
             session_secret: std::env::var("SESSION_SECRET")?,
             primary_domain: std::env::var("PRIMARY_DOMAIN")?,
+            fallback_tenant: std::env::var("FALLBACK_TENANT").ok(),
         })
     }
 }

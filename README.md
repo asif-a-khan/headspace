@@ -4,6 +4,18 @@ A multi-tenant CRM built in Rust. Ships as a single binary that serves server-re
 
 ~39k lines of Rust, ~11k lines of Vue/TypeScript.
 
+## Live Demo
+
+Try the app without installing anything:
+
+**[Live Demo](https://4bf8-38-62-45-51.ngrok-free.app/admin/login)**
+
+| Email | Password |
+|-------|----------|
+| `admin@demo.headspace.local` | `admin123` |
+
+> Note: This is a demo instance running on ngrok. The URL may change — check back here for the latest link.
+
 ## Features
 
 **CRM Core**
@@ -98,6 +110,23 @@ cargo run
 | Super admin | `headspace.local:8000/super/login` | `admin@headspace.local` | `admin123` |
 | Tenant admin | `demo.headspace.local:8000/admin/login` | `admin@demo.headspace.local` | `admin123` |
 
+## Docker
+
+Run everything with one command — no Rust toolchain or PostgreSQL install needed:
+
+```bash
+cp .env.example .env  # Edit as needed
+docker compose up --build -d
+```
+
+The app will be available at `http://localhost`. To expose it publicly via ngrok:
+
+```bash
+ngrok http 80
+```
+
+Set `FALLBACK_TENANT=demo` in `.env` so the ngrok URL resolves to the demo tenant automatically.
+
 ## Configuration
 
 Environment variables (`.env`):
@@ -110,6 +139,7 @@ Environment variables (`.env`):
 | `APP_PORT` | `8000` | Bind port |
 | `SESSION_SECRET` | required | Secret string for session signing |
 | `PRIMARY_DOMAIN` | required | Primary domain for super admin panel (e.g. `headspace.local`) |
+| `FALLBACK_TENANT` | none | Fallback tenant domain when subdomain can't be resolved (for ngrok/tunnels) |
 | `RUST_LOG` | `headspace=debug` | Log level filter |
 
 ## Development

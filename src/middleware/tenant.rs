@@ -41,22 +41,26 @@ pub async fn require_tenant(
     let subdomain = if hostname.ends_with(primary) && hostname.len() > primary.len() {
         // "demo.headspace.local" → strip ".headspace.local" → "demo"
         let prefix = &hostname[..hostname.len() - primary.len()];
-        prefix.strip_suffix('.').unwrap_or(prefix)
+        let sub = prefix.strip_suffix('.').unwrap_or(prefix);
+        if sub.is_empty() { None } else { Some(sub.to_string()) }
     } else {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": "Tenant not found." })),
-        )
-            .into_response();
+        None
     };
 
-    if subdomain.is_empty() {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": "Tenant not found." })),
-        )
-            .into_response();
-    }
+    // if we couldn't extract a subdomain, try the fallback tenant (for ngrok/tunnel demos)
+    let subdomain = match subdomain {
+        Some(s) => s,
+        None => match &config.fallback_tenant {
+            Some(fb) => fb.clone(),
+            None => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(serde_json::json!({ "error": "Tenant not found." })),
+                )
+                    .into_response();
+            }
+        },
+    };
 
     // Look up company by domain (subdomain matches companies.domain)
     let company = sqlx::query_as::<_, Company>("SELECT * FROM main.companies WHERE domain = $1")
