@@ -8,7 +8,7 @@ A multi-tenant CRM built in Rust. Ships as a single binary that serves server-re
 
 Try the app without installing anything:
 
-**[Live Demo](https://4bf8-38-62-45-51.ngrok-free.app/admin/login)**
+**[Live Demo](https://9a05-38-62-45-51.ngrok-free.app/admin/login)**
 
 | Email | Password |
 |-------|----------|
